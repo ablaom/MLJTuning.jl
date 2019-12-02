@@ -15,7 +15,7 @@ elaboration on those terms given in *italics*.
 
 All tuning in MLJ is conceptualized as an iterative procedure, each
 iteration corresponding to a performance *evaluation* of a single
-*model* instance. Each such instance is a mutation of a fixed
+*model*. Each such model is a mutation of a fixed
 *prototype*. In the general case, this prototype is a composite model,
 i.e., a model with other models as hyperparameters, and the types
 these sub-models are allowed to change.
@@ -36,7 +36,7 @@ begin, on the basis of the specific strategy and a user-specified
 *range* object.
 
 - Recall that in MLJ a *model* is an object storing the
-  hyperparameters of some learning algorithm indicated the model type
+  hyperparameters of some learning algorithm indicated by the model type
   name (e.g., `DecisionTreeRegressor`). Models do not store learned
   parameters.
 
@@ -50,7 +50,7 @@ begin, on the basis of the specific strategy and a user-specified
   for details. Recall also that some measures in MLJ (e.g.,
   `cross_entropy`) report a loss (or score) for each provided
   observation, while others (e.g., `auc`) report only an aggregated
-  value. This and other behaviour os governed by trait functions. Do
+  value. This and other behaviour is governed by trait functions. Do
   `info(rms)` to view the traits of the `rms` loss, and see
   [Performance
   measures](https://alan-turing-institute.github.io/MLJ.jl/dev/performance_measures/)
