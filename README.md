@@ -163,7 +163,6 @@ Grid(; resolution=10, acceleration=MLJBase.DEFAULT_RESOURCE[]) =
     Grid(resolution, acceleration)
 ```
 
-# Here `ParameterName=Union{Symbol,Expr}`
 
 
 #### Range types
