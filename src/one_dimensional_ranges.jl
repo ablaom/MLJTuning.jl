@@ -41,20 +41,12 @@ end
 
 struct NumericRange{T,D} <: ParamRange
     field::Union{Symbol,Expr}
-    lower::T
-    upper::T
+    lower::Union{T,Float64} # Float64 to allow for -Inf
+    upper::Union{T,Float64} # Float64 to allow for Inf
+    origin::T
+    unit::T
     scale::D
 end
-
-# function Base.show(stream::IO, object::ParamRange)
-#     id = objectid(object)
-#     T = typeof(object).parameters[1]
-#     description = string(typeof(object).name.name, "{$T}")
-#     str = "$description @ $(MLJBase.handle(object))"
-#     printstyled(IOContext(stream, :color=> MLJBase.SHOW_COLOR),
-#                 str, color=:blue)
-#     print(stream, " for $(object.field)")
-
 
 MLJBase.show_as_constructed(::Type{<:ParamRange}) = true
 
@@ -85,18 +77,60 @@ and `upper`.
 
 """
 function Base.range(model, field::Union{Symbol,Expr}; values=nothing,
-                    lower=nothing, upper=nothing, scale::D=:linear) where D
+                    lower=nothing, upper=nothing,
+                    origin=nothing, unit=nothing, scale::D=:linear) where D
     value = recursive_getproperty(model, field)
     T = typeof(value)
     if T <: Real
-        (lower === nothing || upper === nothing) &&
-            error("You must specify lower=... and upper=... .")
-        return NumericRange{T,D}(field, lower, upper, scale)
+        if lower === nothing && upper === nothing
+            error("You must specify `lower=...` or "*
+                  "`upper=...` or both, for a `Real` parameter. ")
+        end
+        lower === Inf && error("`lower` must be finite or `-Inf`. ")
+        upper === -Inf && error("`upper` must be finite or `Inf`")
+        lower === nothing && (lower = -Inf)
+        upper === nothing && (upper = Inf)
+        lower < upper || errof("`lower` must be strictly less than `upper`. ")
+        isunbounded = (lower === -Inf || upper === Inf)
+        if origin == nothing
+            isunbounded && error("For an unbounded range you must "*
+                                 "specify `origin=...` to "*
+                                 "define a centre.\nTo make the range "*
+                                 "bounded, specify finite `upper=...` "*
+                                 "and `lower=...`")
+            origin = _round(T, (upper + lower)/2)
+        end
+        if unit == nothing
+            isunbounded && error("For an unbounded range you must "*
+                                 "specify `unit=...` to "*
+                                 "define a unit of scale.\nTo make the range "*
+                                 "bounded, specify finite `upper=...` "*
+                                 "and `lower=...`")
+            unit = _floor(T, (upper - lower)/2)
+        end
+
+        unit > 0 || error("`unit` must be positive. ")
+        origin < upper && origin > lower ||
+            error("`origin` must lie strictly between `lower` and `upper`." )
+
+
+        values !== nothing && @warn "`values` in the case of a "*
+        "numeric range are ignored. "
+
+        return NumericRange{T,D}(field, lower, upper, origin, unit, scale)
     else
-        values === nothing && error("You must specify values=... .")
+        values === nothing && error("You must specify values=... "*
+                                    "for a nominal parameter. ")
         return NominalRange{T}(field, Tuple(values))
     end
 end
+
+# to only round and floor for integers:
+_floor(::Type, x) = x
+_floor(T::Type{<:Integer}, x) = convert(T, floor(x))
+_round(T::Type, x) = x
+_round(T::Type{<:Integer}, x) = convert(T, round(x))
+
 
 """
     MLJTuning.scale(r::ParamRange)
@@ -117,14 +151,20 @@ scale(r::NumericRange{T,Symbol}) where T =
 
 """
     MLJTuning.iterator(r::NominalRange)
-    MLJTuning.iterator(r::NumericRange, resolution)
+    MLJTuning.iterator(r::NumericRange, n)
 
-Convert a `ParamRange` object into an iterator elements in the
-range. In the first case iteration is over all values. In the second
-case the number of values is no more than `resolution`. (For integer
-ranges, rounding may lead to duplicate values which are eliminated).
+Return an iterator (currently a vector) for a `ParamRange` object `r`.
+In the first case iteration is over all values. In the second case,
+the iteration is over `N` ordered values in the range, as specified by
+the `lower`, `upper` and `scale` attributes of the range. For
+`AbstractFloat` ranges `N=n`. For `Integer` ranges `N` could be less
+than `n`, because of rounding.
+
+Iterating over unbounded ranges (`lower=-Inf` or `upper=Inf`) is not
+supported.
 
  """
+
 iterator(param_range::NominalRange) = collect(param_range.values)
 
 function iterator(param_range::NumericRange{T}, n::Int) where {T<:Real}
@@ -149,5 +189,3 @@ function iterator(param_range::NumericRange{I}, n::Int) where {I<:Integer}
     end
     return unique(inverse_transformed)
 end
-
-
