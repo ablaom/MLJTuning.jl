@@ -122,7 +122,7 @@ setting up a tuning task, the user constructs an instance of the
 
 #### Summary of functions
 
-Five functions are part of the tuning strategy API: 
+Six functions are part of the tuning strategy API:
 
 - `setup`: for initialization of state (compulsory)
 
@@ -135,6 +135,8 @@ Five functions are part of the tuning strategy API:
 
 - `tuning_report`: for selecting what to report to the user apart from
   the optimal model 
+
+- `default_n`: to specify the number of models to be evaluated
 
 
 These are outlined below, after discussing types.
@@ -159,10 +161,9 @@ mutable struct Grid <: TuningStrategy
 end
 
 # Constructor with keywords
-Grid(; resolution=10, acceleration=MLJBase.DEFAULT_RESOURCE[]) = 
+Grid(; resolution=10, acceleration=MLJTuning.DEFAULT_RESOURCE[]) = 
     Grid(resolution, acceleration)
 ```
-
 
 
 #### Range types
@@ -181,9 +182,10 @@ has the fields `upper`, `lower`, `scale`, `unit` and `origin`. The
 `unit` field specifies a preferred length scale, while `origin` a
 preferred "central value". These default to `(upper - lower)/2` and
 `(upper + lower)/2`, respectively, in the bounded case (neither `upper
-= Inf` nor `lower = -Inf`). The fields can be used to specify, for
-example, a sensible exponential distribution over a positively
-unbounded `NominalRange`.
+= Inf` nor `lower = -Inf`). The fields `origin` and `unit` can be used
+to assign certain one or two-parameter univariate pdf's to a specified
+range (e.g., assign a shifted exponential with mean `lower +
+unit` to a right-unbounded `NominalRange`).
 
 A `ParamRange` object is always associated with the field of a
 specific model type, but this field could be nested (for composite
@@ -196,7 +198,7 @@ strings for further details.
 #### The `result` method: For declaring what parts of an evaluation goes into the history 
 
 ```julia
-MLJBase.result(tuning::MyTuningStrategy, history, e)
+MLJTuning.result(tuning::MyTuningStrategy, history, e)
 ```
 
 This method is for extracting from an evaluation `e` of some model `m`
@@ -205,7 +207,7 @@ This method is for extracting from an evaluation `e` of some model `m`
 history. The fallback is
 
 ```julia
-MLJBase.result(tuning, history, e) = (measure=e.measure, measurement=e.measurement)
+MLJTuning.result(tuning, history, e) = (measure=e.measure, measurement=e.measurement)
 ```
 
 Note this is always a tuple of *vectors*, since multiple measures
@@ -237,21 +239,18 @@ history, then it should be written to the history instead of stored in
 state. An example of this might be the `temperature` in simulated
 annealing.
 
-The only fallback for `setup` provided by MLJ is one that reduces
-one-dimensional `ParamRange` objects to the vector (i.e., Cartesian)
-case:
+The fallback for `setup` is:
 
 ```julia
-MLJBase.setup(tuning::TuningStrategy, model, range::ParamRange) =
-  [range, ]
+MLJTuning.setup(tuning::TuningStrategy, model, range) = range
 ```
 
-A tuning strategy must implement a `setup` method for each range
-type it is going to support:
+However, a tuning strategy will generally want to implement a `setup`
+method for each range type it is going to support:
 
 ```julia 
-MLJBase.setup(tuning::MyTuningStrategy, model, range::RangeType1) = ...
-MLJBase.setup(tuning::MyTuningStrategy, model, range::RangeType2) = ...
+MLJTuning.setup(tuning::MyTuningStrategy, model, range::RangeType1) = ...
+MLJTuning.setup(tuning::MyTuningStrategy, model, range::RangeType2) = ...
 etc.
 ```
 
@@ -259,7 +258,7 @@ etc.
 #### The `models!` method: For generating model batches to evaluate
 
 ```julia
-MLJBase.models!(tuning::MyTuningStrategy, history, state)
+MLJTuning.models!(tuning::MyTuningStrategy, history, state)
 ```
 
 This is the core method of a new implementation. Given the existing
@@ -276,15 +275,16 @@ a compulsory field of the tuning strategy type.
 
 In a `Grid` tuning strategy, for example, `models!` returns a random
 selection of `n - length(history)` models from the grid, so that
-`models!` is called only once (in each call to `MLJBase.fit` or
-`MLJBase.update`). In a bona fide sequential method which is
-generating models non-deterministically (such as simulated annealing),
-`models!` might return a single model, or return a small batch of
-models to make use of parallelization (the method becoming
-"semi-sequential" in that case). In sequential methods that generate
-new models deterministically (such as those choosing models that
-optimize the expected improvement of a surrogate statistical model)
-`models!` would return a single model.
+`models!` is called only once (in each call to
+`MLJBase.fit(::TunedModel, ...)` or `MLJBase.update(::TunedModel,
+...)`). In a bona fide sequential method which is generating models
+non-deterministically (such as simulated annealing), `models!` might
+return a single model, or return a small batch of models to make use
+of parallelization (the method becoming "semi-sequential" in that
+case). In sequential methods that generate new models
+deterministically (such as those choosing models that optimize the
+expected improvement of a surrogate statistical model) `models!` would
+return a single model.
 
 If the tuning algorithm exhausts it's supply of new models (because,
 for example, there is only a finite supply) then `models!` should
@@ -296,7 +296,7 @@ of models.
 #### The `best` method: To define what constitutes the "optimal model"
 
 ```julia
-MLJBase.best(tuning::MyTuningStrategy, history)
+MLJTuning.best(tuning::MyTuningStrategy, history)
 ```
 
 Returns the best model instance, which will be `m` for some pair `(m,
@@ -308,7 +308,7 @@ fallback for `best`, the best model is the one optimizing performance
 estimates for the first measure in the `TunedModel` field `measure`:
 
 ```julia
-function MLJBase.best(tuning, history)
+function MLJTuning.best(tuning, history)
    measurements = [h[2].measurement[1] for h in history]
    measure = history[1].measure[1]
    if orientation(measure) == :score
@@ -326,16 +326,33 @@ user-accessible report. In the case of tuning, the report is
 constructed with this code:
 
 ```julia
-report = merge((best_model=best_model,),
+report = merge((best_model=best_model, best_report=best_report),
                 tuning_report(tuning, history, state))
 ```
 
-where `best_model=best(tuning, history)` and `tuning_report` is a
-method the implementer may overload. It should return a named
-tuple. The fallback is to return the raw history:
+where `best_report` is the report generated by fitting the optimal
+model, `best_model`, and `tuning_report` is a method the implementer
+may overload. It should return a named tuple. The fallback is to
+return the raw history:
 
 ```julia
-MLJBase.tuning_report(tuning, history) = (history=history,)
+MLJTuning.tuning_report(tuning, history) = (history=history,)
+```
+
+### The `default_n` method: For declaring the default number of iterations
+
+```julia
+MLJTuning.default_n(tuning::MyTuningStrategy)
+```
+
+More precisely, the `methods!` method (which is allowed to return
+mutliple models) is called until the number of models exceeds
+`default_n(tuning)`, or `methods!` returns an empty list.
+
+The fallback is 
+
+```julia
+MLJTuning.default_n(::TuningStrategy) = 10
 ```
 
 
@@ -351,130 +368,15 @@ suffice.  Here's the complete implementation:
     
 import MLJBase
     
-mutable struct ExplicitSearch <: MLJBase.TuningStrategy 
-    shuffle::Bool=false,
-    rng::Union{Int,AbstractRNG}=Random.GLOBAL_RNG)
-end
+mutable struct Explicit <: MLJTuning.TuningStrategy end
 
-function ExplicitSearch(; 
-    shuffle::Bool=false,
-    rng::Union{Int,AbstractRNG}=Random.GLOBAL_RNG)
-    return ExplicitSearch(shuffle, rng)
-end
-
-# the initial state is just the provided range (list of models):
-MLJBase.setup(tuning::ExplicitSearch, model, range::Vector{<:Supervised}) =
-    range
-
-# models! returns all models in the range at once:
-MLJBase.models!(tuning::MyTuningStrategy, history, state) = state 
+# return all models in the specified `range` at once:
+MLJTuning.models!(tuning::Explicit, history, state) = state
 
 ```
 
+For slightly less trivial example, see [here]().
 
-## The generic tuning algorithm
-
-
-```julia
-function update_history!(tuning, history, n, resampling_machine, state)
-    while length(history) < n
-        models_ = models!(tuning, history, K, state)
-		if models_ isa AbstractVector
-		    models = models_
-	    else
-		    models = [models_, ]
-        end
-        Δhistory = []
-        # batch processing (TODO: parallize this!):
-        for m in models
-            resampling_machine.model = m
-            fit!(resampling_machine)
-            e = evaluate(resampling_machine)
-            r = result(tuned_model.tuning, history, e)
-            Δhistory = push!(Δhistory, (m, r))
-        end
-        history = vcat(history, Δhistory)
-    end
-end
-
-function MLJBase.fit(tuned_model::TunedModel, verbosity::Integer, X,  y)
-
-    tuning = tuned_model.tuning
-    n = tuned_model.n
-    batch_size = tuned_model.batch_size
-    domain = tuned_model.range
-    model = tuned_model.model
-
-    # omitted: checks that measures are appropriate
-
-    state = setup(tuning, model, range)
-
-    # instantiate resampler (`model` to be replaced with mutated
-    # clones during iteration below):
-    resampler = Resampler(model=model,
-                          resampling = tuned_model.resampling,
-                          measure    = tuned_model.measure,
-                          weights    = tuned_model.weights,
-                          operation  = tuned_model.operation)
-    resampling_machine = machine(resampler, X, y)
-
-    history = []
-    update_history!(tuning, history, n, resampling_machine, state)
-
-    best_model = best(tuning, history)
-
-    fitresult = machine(best_model, X, y)
-    fit!(fitresult, verbosity=verbosity-1)
-
-    report = merge((best_model=best_model,),
-                    tuning_report(tuning, history, state))
-
-    meta_state = (history, deepcopy(tuned_model), state)
-
-    return fitresult, report, stuff
-end
-
-function MLJBase.update(tuned_model::TunedModel, verbosity::Integer,
-                        old_fitresult, old_meta_state, X, y)
-
-    history, old_tuned_model, state = old_meta_state
-
-    n = tuned_model.n
-
-    if isequal_except(tuned_model, old_tuned_model, :n)
-
-        if tuned_model.n > old_tuned_model.n
-            tuned_model.n = n - old_model.n # temporarily mutate tuned_model
-            update_history!(tuning, history, n, resampling_machine, state)
-            tuned_model.n = n # restore tuned_model to original state
-
-        else
-            verbosity < 1 || @info "Number of tuning iterations `n` lowered.\n"*
-            "Truncating existing tuning history and retraining new best model."
-        end
-        best_model = best(tuning, history)
-
-        fitresult = machine(best_model, X, y)
-        fit!(fitresult, verbosity=verbosity - 1)
-
-        report = merge((best_model=best_model,),
-                       tuning_report(tuning, history, state))
-
-        meta_state = (history, deepcopy(tuned_model), state)
-
-        return fitresult, report, meta_state
-
-    else
-
-        return fit(tuned_model, verbosity, X, y)
-
-    end
-
-end
-
-MLJBase.predict(tuned_model::TunedModel, fitresult, Xnew) =
-    predict(fitresult, Xnew)
-```
 
 *Not implemented above*: User should be able to specify a stream to
 which the history is written in each iteration. In any case a
@@ -484,9 +386,6 @@ algorithm crashes or is interrupted.
 #############
 
 TODO:
-
-- add `unit` and `origin` field to NominalRanges for unbounded case to
-  specify a length scale, and add checks on fields.
 
 - define show_as_constructed(::Type{<:TuningStrategy}) = true
 
