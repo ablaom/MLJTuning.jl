@@ -3,8 +3,11 @@ module MLJTuning
 
 ## METHOD EXPORT
 
-# defined in one_dimensional_ranges.jl:
-export ParamRange, NumericRange, NominalRange, iterator, scale
+# defined in tuned_models.jl:
+export Grid, TunedModel
+
+# defined in strategies/:
+export Explicit
 
 
 ## METHOD IMPORT
@@ -15,7 +18,9 @@ using MLJBase
 
 ## INCLUDE FILES
 
-include("one_dimensional_ranges.jl")
 include("utilities.jl")
-
+include("tuning_strategy_interface.jl")
+include("tuned_models.jl")
+include("strategies/explicit.jl")
 end
+

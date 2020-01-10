@@ -28,4 +28,4 @@ end
 tuning_report(tuning::TuningStrategy, history) = (history=history,)
 
 # for declaring the default number of models to evaluate:
-default_n(tuning::TuningStrategy) = 10
+default_n(tuning::TuningStrategy, range) = 10

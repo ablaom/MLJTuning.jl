@@ -339,7 +339,7 @@ return the raw history:
 MLJTuning.tuning_report(tuning, history) = (history=history,)
 ```
 
-### The `default_n` method: For declaring the default number of iterations
+#### The `default_n` method: For declaring the default number of iterations
 
 ```julia
 MLJTuning.default_n(tuning::MyTuningStrategy)
@@ -356,41 +356,31 @@ MLJTuning.default_n(::TuningStrategy) = 10
 ```
 
 
-## Implementation example: Explicit search
+### Implementation example: Search through explicit list 
 
 The most rudimentary tuning strategy just evaluates every model in a
 specified list, such lists constituting the only kind of supported
-range. In this special case the prototype is simply ignored. The
-fallback implementations for `result`, `best` and `report_history`
-suffice.  Here's the complete implementation:
+range. (In this special case `range` is an arbitrary iterator of models, which are `Probabilistic` or `Deterministic`, according to the type of the prototype `model`, which is otherwise ignored.) The fallback implementations for `result`,
+`best` and `report_history` suffice.  Here's the complete
+implementation:
 
 ```julia 
     
 import MLJBase
     
-mutable struct Explicit <: MLJTuning.TuningStrategy end
+mutable struct Explicit <: TuningStrategy end
 
-# return all models in the specified `range` at once:
-MLJTuning.models!(tuning::Explicit, history, state) = state
+# models! returns all models in the range at once:
+MLJTuning.models!(tuned_model::Explicit, history, state) = state # the range
+
+function MLJTuning.default_n(tuning::Explicit, range)
+    try
+        length(range)
+    catch MethodError
+        10
+    end
+end
 
 ```
 
 For slightly less trivial example, see [here]().
-
-
-*Not implemented above*: User should be able to specify a stream to
-which the history is written in each iteration. In any case a
-try-catch block should be used to ensure the history is not lost if the
-algorithm crashes or is interrupted.
-
-#############
-
-TODO:
-
-- define show_as_constructed(::Type{<:TuningStrategy}) = true
-
-- add handling of model exhaustion
-
-- add `range=ranges` kwarg to TunedModel
-
-- sort out how to externally control termination, almost certainly with a model wrapper 

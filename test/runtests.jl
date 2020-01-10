@@ -12,9 +12,3 @@ end
   @test include("utilities.jl")
 end
 
-@testset "one_dimensional_ranges" begin
-  @test include("one_dimensional_ranges.jl")
-end
-
-
-
