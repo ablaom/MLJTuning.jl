@@ -104,7 +104,6 @@ function TunedModel(;model=nothing,
     model == nothing && error("You need to specify model=... "*
                               "If `tuning=Explicit()`, any model in the "*
                               "range will do. ")
-    @show model tuning resampling measure weights operation range train_best repeats n
 
     if model isa Deterministic
         tuned_model = DeterministicTunedModel(model, tuning, resampling,
@@ -115,7 +114,7 @@ function TunedModel(;model=nothing,
                                        measure, weights, operation, range,
                                        train_best, repeats, n)
     else
-        error("Only `Deterministic` and `Probabilisitc` "*
+        error("Only `Deterministic` and `Probabilistic` "*
               "model types supported.")
     end
 
