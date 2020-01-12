@@ -14,7 +14,8 @@ export Explicit
 
 import MLJBase
 using MLJBase
-
+import ComputationalResources: CPU1, CPUProcesses,
+    CPUThreads, AbstractResource
 
 ## INCLUDE FILES
 

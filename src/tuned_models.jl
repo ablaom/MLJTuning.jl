@@ -9,6 +9,7 @@ mutable struct DeterministicTunedModel{T,M<:Deterministic,R} <: MLJBase.Determin
     train_best::Bool
     repeats::Int
     n::Union{Int,Nothing}
+    acceleration::AbstractResource
 end
 
 mutable struct ProbabilisticTunedModel{T,M<:Probabilistic,R} <: MLJBase.Probabilistic
@@ -22,6 +23,7 @@ mutable struct ProbabilisticTunedModel{T,M<:Probabilistic,R} <: MLJBase.Probabil
     train_best::Bool
     repeats::Int
     n::Union{Int,Nothing}
+    acceleration::AbstractResource
 end
 
 const EitherTunedModel{T,M} =
@@ -39,8 +41,9 @@ MLJBase.is_wrapper(::Type{<:EitherTunedModel}) = true
                              repeats=1,
                              operation=predict,
                              ranges=ParamRange[],
-                             full_report=true,
-                             train_best=true)
+                             n=default_n(tuning, range),
+                             train_best=true,
+                             acceleration=default_resource())
 
 Construct a model wrapper for hyperparameter optimization of a
 supervised learner.
@@ -97,22 +100,25 @@ function TunedModel(;model=nothing,
                     range=ranges,
                     train_best=true,
                     repeats=1,
-                    n=default_n(tuning, range))
+                    n=default_n(tuning, range),
+                    acceleration=default_resource())
 
     range === nothing && error("You need to specify `range=...` unless "*
                                "`tuning isa Explicit`. ")
-    model == nothing && error("You need to specify model=... "*
+    model == nothing && error("You need to specify model=... .\n"*
                               "If `tuning=Explicit()`, any model in the "*
                               "range will do. ")
 
     if model isa Deterministic
         tuned_model = DeterministicTunedModel(model, tuning, resampling,
                                        measure, weights, operation, range,
-                                       train_best, repeats, n)
+                                              train_best, repeats, n,
+                                              acceleration)
     elseif model isa Probabilistic
         tuned_model = ProbabilisticTunedModel(model, tuning, resampling,
                                        measure, weights, operation, range,
-                                       train_best, repeats, n)
+                                              train_best, repeats, n,
+                                              acceleration)
     else
         error("Only `Deterministic` and `Probabilistic` "*
               "model types supported.")
@@ -134,38 +140,32 @@ function MLJBase.clean!(model::EitherTunedModel)
     return message
 end
 
-function update_history!(tuning, history, n, resampling_machine, state)
-    j = length(history)
-    models_exhausted = false
-    while j < n && !models_exhausted
-        models = models!(tuning, history, K, state)
-        Δj = length(models)
-        Δj == 0 && (models_exhausted = true)
-        shortfall = n - Δj
-        if models_exhausted && shortfall > 0 && verbosity > -1
-            @warn "Supply of models pre-maturely exhausted. "
-        end
-        shortfall < 0 && (models = models[1:n - j])
-        Δhistory = []
-        # batch processing (TODO: parallize this!):
-        for m in models
-            resampling_machine.model = m
-            fit!(resampling_machine)
-            e = evaluate(resampling_machine)
-            r = result(tuned_model.tuning, history, e)
-            Δhistory = push!(Δhistory, (m, r))
-        end
-        history = vcat(history, Δhistory)
-    end
+function build_history!(tuning, n, resampling_machine,
+                         state, verbosity)
 end
 
-function MLJBase.fit(tuned_model::EitherTunedModel, verbosity::Integer, X, y)
+function event(model, resampling_machine, verbosity, tuning, history)
+    resampling_machine.model.model = model
+    fit!(resampling_machine, verbosity=verbosity - 1)
+    e = evaluate(resampling_machine)
+    r = result(tuning, history, e)
+    return model, r
+end
+
+# history is intialized to `nothing` because it's type is not known.
+_vcat(history, Δhistory) = vcat(history, Δhistory)
+_vcat(history::Nothing, Δhistory) = Δhistory
+
+# models may return `nothing` insead of an empty list:
+
+function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
+                     verbosity::Integer, args...) where {T,M}
     tuning = tuned_model.tuning
     n = tuned_model.n
-    n === Nothing && (n = default_n(tuning))
-    batch_size = tuned_model.batch_size
     domain = tuned_model.range
     model = tuned_model.model
+    range = tuned_model.range
+    n === Nothing && (n = default_n(tuning, range))
 
     # omitted: checks that measures are appropriate
 
@@ -178,31 +178,52 @@ function MLJBase.fit(tuned_model::EitherTunedModel, verbosity::Integer, X, y)
                           measure    = tuned_model.measure,
                           weights    = tuned_model.weights,
                           operation  = tuned_model.operation)
-    resampling_machine = machine(resampler, X, y)
+    resampling_machine = machine(resampler, args...)
 
-    history = []
-    update_history!(tuning, history, n, resampling_machine, state)
+    j = 0 # model counter
+    models_exhausted = false
+    history = nothing
+    while j < n && !models_exhausted
+        _models = models!(tuning, model, history, state)
+        models = _models === nothing ? M[] : collect(_models)
+        @show models
+        Δj = length(models)
+        Δj == 0 && (models_exhausted = true)
+        shortfall = n - Δj
+        if models_exhausted && shortfall > 0 && verbosity > -1
+            @warn "Supply of models exhausted before specified number of "*
+            "models (`n=$n`) could be evaluated. "
+        end
+        Δj == 0 && break
+        shortfall < 0 && (models = models[1:n - j])
+        j += Δj
+
+        # batch processing (TODO: parallelize next line):
+        Δhistory = [event(m, resampling_machine, verbosity, tuning, history)
+                    for m in models]
+        @show Δhistory
+        history = _vcat(history, Δhistory)
+    end
 
     best_model = best(tuning, history)
-
-    fitresult = machine(best_model, X, y)
+    fitresult = machine(best_model, args...)
 
     if tuned_model.train_best
-        fit!(fitresult, verbosity=verbosity-1)
-        prereport = (best_model=best_model, best_report=report(fitresult))
+        fit!(fitresult, verbosity=verbosity - 1)
+        prereport = (best_model=best_model,
+                     best_report=MLJBase.report(fitresult))
     else
         prereport = (best_model=best_model, best_report=missing)
     end
 
     report = merge(prereport, tuning_report(tuning, history, state))
-
     meta_state = (history, deepcopy(tuned_model), state)
 
-    return fitresult, report, stuff
+    return fitresult, meta_state, report
 end
 
 function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
-                        old_fitresult, old_meta_state, X, y)
+                        old_fitresult, old_meta_state, args...)
 
     history, old_tuned_model, state = old_meta_state
 
@@ -220,7 +241,7 @@ function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
         end
         best_model = best(tuning, history)
 
-        fitresult = machine(best_model, X, y)
+        fitresult = machine(best_model, args...)
 
         if tuned_model.train_best
             fit!(fitresult, verbosity=verbosity-1)
@@ -233,11 +254,11 @@ function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
 
         meta_state = (history, deepcopy(tuned_model), state)
 
-        return fitresult, report, meta_state
+        return fitresult, meta_state, report
 
     else
 
-        return fit(tuned_model, verbosity, X, y)
+        return fit(tuned_model, verbosity, args...)
 
     end
 

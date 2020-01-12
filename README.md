@@ -64,7 +64,7 @@ begin, on the basis of the specific strategy and a user-specified
   score) different from one being explicitly optimized. Each tuple is
   of the form `(m, r)`, where `m` is a model instance and `r` is
   information
-  about `m` extracted from an evaluation.   
+  about `m` extracted from an evaluation.
 
 - A *tuning strategy* is an instance of some subtype `S <:
   TuningStrategy`, the name `S` (e.g., `Grid`) indicating the tuning
@@ -89,11 +89,14 @@ begin, on the basis of the specific strategy and a user-specified
   which are sampled using the `resolution` hyperparameter. However,
   `Grid` also supports a vector of 1D range/resolution pairs.
   
+**Important note on history initialization:** The history is always
+initialized to `nothing`, rather than an empty vector.
+  
 ### Interface points for user input
 
-Recall that in MLJ tuning is implemented as a model wrapper. In
-setting up a tuning task, the user constructs an instance of the
-`TunedModel` wrapper type, which has these principal fields:
+Recall, for context, that in MLJ tuning is implemented as a model
+wrapper. In setting up a tuning task, the user constructs an instance
+of the `TunedModel` wrapper type, which has these principal fields:
 
 - `model`: the prototype model instance mutated during tuning
 
@@ -137,6 +140,8 @@ Six functions are part of the tuning strategy API:
   the optimal model 
 
 - `default_n`: to specify the number of models to be evaluated
+
+- `result_type`: to declare the type of object returned by `result` method (for performance, optional)
 
 
 These are outlined below, after discussing types.
@@ -195,7 +200,7 @@ record this, where dot syntax is used to specify nested fields, as in
 strings for further details.
 
 
-#### The `result` method: For declaring what parts of an evaluation goes into the history 
+#### The `result` and `result_type` methods: For declaring what parts of an evaluation goes into the history 
 
 ```julia
 MLJTuning.result(tuning::MyTuningStrategy, history, e)
@@ -220,6 +225,22 @@ user (for use in visualization, for example). These methods are
 detailed below.
 
 
+```julia
+MLJTuning.result_type(tuning::MyTuningStrategy, model)
+```
+
+Returns the type of the return value of `result`. This is used to
+initialize an empty history. This could be set to `Any` but for very
+large histories, declaring a concrete type here might reduce
+allocations and give a minor speed improvement. The fallback is the
+one matching the `result` method fallback above:
+
+```julia
+result_type(tuning, model) =
+    Tuple{NamedTuple{(:measure, :measurement),Tuple{Float64,Float64}}[]
+```
+
+
 #### The `setup` method: To initialize state 
 
 ```julia
@@ -228,11 +249,11 @@ state = setup(tuning::MyTuningStrategy, model, range)
 
 The `setup` function is for initializing the mutable `state` of the
 tuning algorithm (needed, by the algorithm's `models!` method; see
-below). The `state` generally stores, at the least, the range or some
-processed version thereof. In momentum-based gradient descent, for
-example, the state would include the previous hyperparameter
-gradients, while in GP Bayesian optimization, it would store the
-(evolving) Gaussian processes. 
+below) and an empty history object. The `state` generally stores, at
+the least, the range or some processed version thereof. In
+momentum-based gradient descent, for example, the state would include
+the previous hyperparameter gradients, while in GP Bayesian
+optimization, it would store the (evolving) Gaussian processes.
 
 If a variable is to be reported as part of the user-inspectable
 history, then it should be written to the history instead of stored in
@@ -258,20 +279,22 @@ etc.
 #### The `models!` method: For generating model batches to evaluate
 
 ```julia
-MLJTuning.models!(tuning::MyTuningStrategy, history, state)
+MLJTuning.models!(tuning::MyTuningStrategy, model, history, state)
 ```
 
 This is the core method of a new implementation. Given the existing
 `history` and `state`, it must return a vector ("batch") of *new*
 model instances to be evaluated. Any number of models can be returned
-and the evaluations will be performed in parallel (using the mode of
-parallelization defined by the `acceleration` field of the
+(and this includes an empty vector or `nothing`, if models have been
+exhausted) and the evaluations will be performed in parallel (using
+the mode of parallelization defined by the `acceleration` field of the
 `TunedModel` instance). *An update of the history, performed
 automatically under the hood, only occurs after these evaluations.*
 
 Most sequential tuning strategies will want include the batch size as
-a hyperparameter, which they should call `batch_size`, but this is not
-a compulsory field of the tuning strategy type.
+a hyperparameter, which we suggest they call `batch_size`, but this
+field is not part of the tuning interface. In tuning whatever number
+of models are returned by `models!` get evaluated in parallel.
 
 In a `Grid` tuning strategy, for example, `models!` returns a random
 selection of `n - length(history)` models from the grid, so that
@@ -308,9 +331,9 @@ fallback for `best`, the best model is the one optimizing performance
 estimates for the first measure in the `TunedModel` field `measure`:
 
 ```julia
-function MLJTuning.best(tuning, history)
+function best(tuning::TuningStrategy, history)
    measurements = [h[2].measurement[1] for h in history]
-   measure = history[1].measure[1]
+   measure = first(history)[2].measure[1]
    if orientation(measure) == :score
        measurements = -measurements
    end
@@ -336,7 +359,7 @@ may overload. It should return a named tuple. The fallback is to
 return the raw history:
 
 ```julia
-MLJTuning.tuning_report(tuning, history) = (history=history,)
+MLJTuning.tuning_report(tuning, history, state) = (history=history,)
 ```
 
 #### The `default_n` method: For declaring the default number of iterations
