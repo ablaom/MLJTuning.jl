@@ -174,8 +174,8 @@ Grid(; resolution=10, acceleration=MLJTuning.DEFAULT_RESOURCE[]) =
 #### Range types
 
 A type definition is required for each range object a tuning strategy
-should like to handle. The following range types are provided
-by MLJBase (re-exported by MLJTuning):
+should like to handle. The following range types are available
+out-of-the box (re-exported from MLJBase):
 
 - The one-dimensional range types `NumericRange` and `OrdinalRange`
   (subtypes of `ParamRange`)
@@ -187,20 +187,26 @@ has the fields `upper`, `lower`, `scale`, `unit` and `origin`. The
 `unit` field specifies a preferred length scale, while `origin` a
 preferred "central value". These default to `(upper - lower)/2` and
 `(upper + lower)/2`, respectively, in the bounded case (neither `upper
-= Inf` nor `lower = -Inf`). The fields `origin` and `unit` can be used
-to assign certain one or two-parameter univariate pdf's to a specified
-range (e.g., assign a shifted exponential with mean `lower +
-unit` to a right-unbounded `NominalRange`).
+= Inf` nor `lower = -Inf`). The fields `origin` and `unit` are used in
+generating grids for unbounded ranges but can also be used to assign
+sensible one or two-parameter univariate pdf's to a specified range
+(e.g., assign a shifted exponential with mean `lower + unit` to a
+right-unbounded `NominalRange`).
 
-A `ParamRange` object is always associated with the field of a
-specific model type, but this field could be nested (for composite
-models). The `ParamRange` subtypes have an attribute, `field`, to
-record this, where dot syntax is used to specify nested fields, as in
-`:(atom.max_depth)`. Query the `OrdinalRange` and `NominalRange` doc
-strings for further details.
+A `ParamRange` object is always associated with a field name, stored
+as `field`, but for composite models this might be a be a "nested
+name", such as `:(atom.max_depth)`.
+
+*Generating grids.** To generate a one-dimensional grid from a
+`ParamRange` object `r`, use `iterator(r, n, [, rng])` where `n` is
+the number of grid points (maybe less for integer grids, due to
+rounding) and `rng` an optional random number generator to shuffle the
+output. Query `OrdinalRange`, `NominalRange` and `iterator` doc
+strings for further details. For multi-dimensional grids, use the
+`unwind` function on the one-dimensional grids.
 
 
-#### The `result` and `result_type` methods: For declaring what parts of an evaluation goes into the history 
+#### The `result` method: For declaring what parts of an evaluation goes into the history 
 
 ```julia
 MLJTuning.result(tuning::MyTuningStrategy, history, e)
@@ -223,22 +229,6 @@ determine the optimal model, and everything needed by the
 `report_history` method, which generates a report on tuning to the
 user (for use in visualization, for example). These methods are
 detailed below.
-
-
-```julia
-MLJTuning.result_type(tuning::MyTuningStrategy, model)
-```
-
-Returns the type of the return value of `result`. This is used to
-initialize an empty history. This could be set to `Any` but for very
-large histories, declaring a concrete type here might reduce
-allocations and give a minor speed improvement. The fallback is the
-one matching the `result` method fallback above:
-
-```julia
-result_type(tuning, model) =
-    Tuple{NamedTuple{(:measure, :measurement),Tuple{Float64,Float64}}[]
-```
 
 
 #### The `setup` method: To initialize state 

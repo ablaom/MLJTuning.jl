@@ -1,3 +1,5 @@
+## TYPES AND CONSTRUCTOR
+
 mutable struct DeterministicTunedModel{T,M<:Deterministic,R} <: MLJBase.Deterministic
     model::M
     tuning::T  # tuning strategy
@@ -140,26 +142,55 @@ function MLJBase.clean!(model::EitherTunedModel)
     return message
 end
 
-function build_history!(tuning, n, resampling_machine,
-                         state, verbosity)
-end
 
+## FIT AND UPDATE METHODS
+
+# returns a (model, result) pair for the history:
 function event(model, resampling_machine, verbosity, tuning, history)
     resampling_machine.model.model = model
     fit!(resampling_machine, verbosity=verbosity - 1)
     e = evaluate(resampling_machine)
     r = result(tuning, history, e)
-    return model, r
+    return deepcopy(model), r
 end
 
 # history is intialized to `nothing` because it's type is not known.
 _vcat(history, Δhistory) = vcat(history, Δhistory)
 _vcat(history::Nothing, Δhistory) = Δhistory
+_length(history) = length(history)
+_length(::Nothing) = 0
 
-# models may return `nothing` insead of an empty list:
+# builds on an existing `history` until the length is `n` or the model
+# supply is exhausted(method shared by `fit` and `update`). Returns
+# the bigger history:
+function build(history, n, tuning, model::M,
+               state, verbosity, resampling_machine) where M
+    j = _length(history)
+    models_exhausted = false
+    while j < n && !models_exhausted
+        _models = models!(tuning, model, history, state)
+        models = _models === nothing ? M[] : collect(_models)
+        Δj = length(models)
+        Δj == 0 && (models_exhausted = true)
+        shortfall = n - Δj
+        if models_exhausted && shortfall > 0 && verbosity > -1
+            @warn "Only $j < n = $n`  models evaluated.\n"*
+            "Model supply prematurely exhausted. "
+        end
+        Δj == 0 && break
+        shortfall < 0 && (models = models[1:n - j])
+        j += Δj
+
+        # batch processing (TODO: parallelize next line):
+        Δhistory = [event(m, resampling_machine, verbosity, tuning, history)
+                    for m in models]
+        history = _vcat(history, Δhistory)
+    end
+    return history
+end
 
 function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
-                     verbosity::Integer, args...) where {T,M}
+                     verbosity::Integer, data...) where {T,M}
     tuning = tuned_model.tuning
     n = tuned_model.n
     domain = tuned_model.range
@@ -178,35 +209,13 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
                           measure    = tuned_model.measure,
                           weights    = tuned_model.weights,
                           operation  = tuned_model.operation)
-    resampling_machine = machine(resampler, args...)
+    resampling_machine = machine(resampler, data...)
 
-    j = 0 # model counter
-    models_exhausted = false
-    history = nothing
-    while j < n && !models_exhausted
-        _models = models!(tuning, model, history, state)
-        models = _models === nothing ? M[] : collect(_models)
-        @show models
-        Δj = length(models)
-        Δj == 0 && (models_exhausted = true)
-        shortfall = n - Δj
-        if models_exhausted && shortfall > 0 && verbosity > -1
-            @warn "Supply of models exhausted before specified number of "*
-            "models (`n=$n`) could be evaluated. "
-        end
-        Δj == 0 && break
-        shortfall < 0 && (models = models[1:n - j])
-        j += Δj
-
-        # batch processing (TODO: parallelize next line):
-        Δhistory = [event(m, resampling_machine, verbosity, tuning, history)
-                    for m in models]
-        @show Δhistory
-        history = _vcat(history, Δhistory)
-    end
+    history = build(nothing, n, tuning, model, state,
+                    verbosity, resampling_machine)
 
     best_model = best(tuning, history)
-    fitresult = machine(best_model, args...)
+    fitresult = machine(best_model, data...)
 
     if tuned_model.train_best
         fit!(fitresult, verbosity=verbosity - 1)
@@ -217,31 +226,40 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
     end
 
     report = merge(prereport, tuning_report(tuning, history, state))
-    meta_state = (history, deepcopy(tuned_model), state)
+    meta_state = (history, deepcopy(tuned_model), state, resampling_machine)
 
     return fitresult, meta_state, report
 end
 
 function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
-                        old_fitresult, old_meta_state, args...)
+                        old_fitresult, old_meta_state, data...)
 
-    history, old_tuned_model, state = old_meta_state
+    history, old_tuned_model, state, resampling_machine = old_meta_state
 
     n = tuned_model.n
 
-    if isequal_except(tuned_model, old_tuned_model, :n)
+    if MLJBase.is_same_except(tuned_model, old_tuned_model, :n)
+
+        tuning=tuned_model.tuning
+        model=tuned_model.model
 
         if tuned_model.n > old_tuned_model.n
-            tuned_model.n = n - old_model.n # temporarily mutate tuned_model
-            update_history!(tuning, history, n, resampling_machine, state)
-            tuned_model.n = n # restore tuned_model to original state
+            # temporarily mutate tuned_model:
+            tuned_model.n = n - old_tuned_model.n
+
+            history = build(history, n, tuning, model, state,
+                            verbosity, resampling_machine)
+
+            # restore tuned_model to original state
+            tuned_model.n = n
         else
-            verbosity < 1 || @info "Number of tuning iterations `n` lowered.\n"*
-            "Truncating existing tuning history and retraining new best model."
+            verbosity < 1 || @info "Number of tuning iterations `n` "*
+            "lowered.\nTruncating existing tuning history and "*
+            "retraining new best model."
         end
         best_model = best(tuning, history)
 
-        fitresult = machine(best_model, args...)
+        fitresult = machine(best_model, data...)
 
         if tuned_model.train_best
             fit!(fitresult, verbosity=verbosity-1)
@@ -250,15 +268,15 @@ function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
             prereport = (best_model=best_model, best_report=missing)
         end
 
-        report = merge(prereport, tuning_report(tuning, history, state))
+        _report = merge(prereport, tuning_report(tuning, history, state))
 
         meta_state = (history, deepcopy(tuned_model), state)
 
-        return fitresult, meta_state, report
+        return fitresult, meta_state, _report
 
     else
 
-        return fit(tuned_model, verbosity, args...)
+        return fit(tuned_model, verbosity, data...)
 
     end
 
