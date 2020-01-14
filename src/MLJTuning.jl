@@ -14,6 +14,7 @@ export Explicit
 
 import MLJBase
 using MLJBase
+using Distributed
 import ComputationalResources: CPU1, CPUProcesses,
     CPUThreads, AbstractResource
 

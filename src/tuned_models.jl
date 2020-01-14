@@ -136,8 +136,13 @@ end
 function MLJBase.clean!(model::EitherTunedModel)
     message = ""
     if model.measure === nothing
-        model.measure = default_measure(model)
         message *= "No measure specified. Setting measure=$(model.measure). "
+        model.measure = default_measure(model)
+    end
+    if !(model.acceleration isa Union{CPU1, CPUProcesses})
+        message *= "Supported `acceleration` types are `CPU1` "*
+        "and `CPUProcesses`. Setting `acceleration=CPU1()`. "
+        model.acceleration = CPU1()
     end
     return message
 end
@@ -148,10 +153,25 @@ end
 # returns a (model, result) pair for the history:
 function event(model, resampling_machine, verbosity, tuning, history)
     resampling_machine.model.model = model
-    fit!(resampling_machine, verbosity=verbosity - 1)
+    verb = (verbosity == 2 ? 0 : verbosity - 1)
+    fit!(resampling_machine, verbosity=verb)
     e = evaluate(resampling_machine)
     r = result(tuning, history, e)
     return deepcopy(model), r
+end
+
+function assemble_events(models, resampling_machine,
+                         verbosity, tuning, history, acceleration::CPU1)
+    map(models) do m
+        event(m, resampling_machine, verbosity, tuning, history)
+    end
+end
+
+function assemble_events(models, resampling_machine,
+                         verbosity, tuning, history, acceleration::CPUProcesses)
+    pmap(models) do m
+        event(m, resampling_machine, verbosity, tuning, history)
+    end
 end
 
 # history is intialized to `nothing` because it's type is not known.
@@ -164,7 +184,7 @@ _length(::Nothing) = 0
 # supply is exhausted(method shared by `fit` and `update`). Returns
 # the bigger history:
 function build(history, n, tuning, model::M,
-               state, verbosity, resampling_machine) where M
+               state, verbosity, acceleration, resampling_machine) where M
     j = _length(history)
     models_exhausted = false
     while j < n && !models_exhausted
@@ -181,9 +201,8 @@ function build(history, n, tuning, model::M,
         shortfall < 0 && (models = models[1:n - j])
         j += Δj
 
-        # batch processing (TODO: parallelize next line):
-        Δhistory = [event(m, resampling_machine, verbosity, tuning, history)
-                    for m in models]
+        Δhistory = assemble_events(models, resampling_machine,
+                                 verbosity, tuning, history, acceleration)
         history = _vcat(history, Δhistory)
     end
     return history
@@ -197,6 +216,7 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
     model = tuned_model.model
     range = tuned_model.range
     n === Nothing && (n = default_n(tuning, range))
+    acceleration = tuned_model.acceleration
 
     # omitted: checks that measures are appropriate
 
@@ -212,7 +232,7 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
     resampling_machine = machine(resampler, data...)
 
     history = build(nothing, n, tuning, model, state,
-                    verbosity, resampling_machine)
+                    verbosity, acceleration, resampling_machine)
 
     best_model = best(tuning, history)
     fitresult = machine(best_model, data...)
@@ -237,6 +257,7 @@ function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
     history, old_tuned_model, state, resampling_machine = old_meta_state
 
     n = tuned_model.n
+    acceleration = tuned_model.acceleration
 
     if MLJBase.is_same_except(tuned_model, old_tuned_model, :n)
 
@@ -248,7 +269,7 @@ function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
             tuned_model.n = n - old_tuned_model.n
 
             history = build(history, n, tuning, model, state,
-                            verbosity, resampling_machine)
+                            verbosity, acceleration, resampling_machine)
 
             # restore tuned_model to original state
             tuned_model.n = n

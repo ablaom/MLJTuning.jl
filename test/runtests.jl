@@ -1,11 +1,9 @@
 using Distributed
 addprocs(2)
 
-@everywhere begin
 using Test
 using MLJTuning
 using MLJBase
-end
 
 include("test_utilities.jl")
 
