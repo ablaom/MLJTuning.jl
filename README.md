@@ -15,10 +15,10 @@ elaboration on those terms given in *italics*.
 
 All tuning in MLJ is conceptualized as an iterative procedure, each
 iteration corresponding to a performance *evaluation* of a single
-*model*. Each such model is a mutation of a fixed
-*prototype*. In the general case, this prototype is a composite model,
-i.e., a model with other models as hyperparameters, and the types
-these sub-models are allowed to change.
+*model*. Each such model is a mutation of a fixed *prototype*. In the
+general case, this prototype is a composite model, i.e., a model with
+other models as hyperparameters, and while the type of the prototype
+is fixed, the types of the sub-models are allowed to vary.
 
 When all iterations of the algorithm are complete, the optimal model
 is selected based entirely on a *history* generated according to the
@@ -125,7 +125,7 @@ of the `TunedModel` wrapper type, which has these principal fields:
 
 #### Summary of functions
 
-Six functions are part of the tuning strategy API:
+Several functions are part of the tuning strategy API:
 
 - `setup`: for initialization of state (compulsory)
 
