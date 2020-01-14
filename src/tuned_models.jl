@@ -93,7 +93,7 @@ training the best model is accessed via `report(mach).best_report`.
 """
 function TunedModel(;model=nothing,
                     tuning=Explicit(),
-                    resampling=Holdout(),
+                    resampling=MLJBase.Holdout(),
                     measures=nothing,
                     measure=measures,
                     weights=nothing,
