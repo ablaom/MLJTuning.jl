@@ -23,6 +23,7 @@ import ComputationalResources: CPU1, CPUProcesses,
 include("utilities.jl")
 include("tuning_strategy_interface.jl")
 include("tuned_models.jl")
+include("ranges.jl")
 include("strategies/explicit.jl")
 end
 

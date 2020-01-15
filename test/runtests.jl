@@ -19,3 +19,7 @@ end
 @testset "tuned_models.jl" begin
     @test include("tuned_models.jl")
 end
+
+@testset "ranges" begin
+    @test include("ranges.jl")
+end
