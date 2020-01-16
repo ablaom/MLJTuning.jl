@@ -15,6 +15,93 @@ x3 = rand(100)
 X = (x1=x1, x2=x2, x3=x3);
 y = 2*x1 .+ 5*x2 .- 3*x3 .+ 0.2*rand(100);
 
+mutable struct DummyModel <: Deterministic
+    lambda::Float64
+    metric::Float64
+    kernel::Char
+end
+
+dummy_model = DummyModel(4, 9.5, 'k')
+
+mutable struct SuperModel <: Deterministic
+    K::Int64
+    model1::DummyModel
+    model2::DummyModel
+end
+
+dummy_model = DummyModel(1.2, 9.5, 'k')
+super_model = SuperModel(4, dummy_model, deepcopy(dummy_model))
+
+s = range(super_model, :(model1.kernel), values=['c', 'd'])
+r1 = range(super_model, :(model1.lambda), lower=20, upper=31)
+r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
+
+@testset "setup" begin
+    user_range = [r1, (r2, 3), s]
+
+    # with method:
+    tuning = Grid(resolution=2, shuffle=false)
+    models1 = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
+    tuning = Grid(resolution=2, rng=123)
+    models1r = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
+
+    # by hand:
+    m1 = [(K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 3, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 3, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
+          (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
+          (K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 3, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 3, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
+          (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))]
+
+    @test m1 == models1
+    @test m1 != models1r
+    @test Set(m1) == Set(models1r)
+
+    # with method:
+    tuning = Grid(goal=8, shuffle=false)
+    models2 = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
+
+    # by hand:
+    m2 = [(K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
+          (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
+          (K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+          (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
+          (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))]
+
+    @test models2 == m2
+
+end
+
+
 # @testset "2-parameter tune, no nesting" begin
 
 #     sel = FeatureSelector()

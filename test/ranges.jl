@@ -40,8 +40,8 @@ r2 = range(super_model, :K, lower=1, upper=10, scale=:log10)
 
     # with method:
     m1 = MLJTuning.grid(super_model, [r1, r2], [nothing, 7])
-    m1r = MLJTuning.grid(super_model, [r1, r2], [nothing, 7],
-                           MersenneTwister(123))
+    m1r = MLJTuning.grid(MersenneTwister(123), super_model, [r1, r2],
+                         [nothing, 7])
 
     # generate all models by hand:
     models1 = [SuperModel(1, DummyModel(1.2, 9.5, 'c'), dummy_model),

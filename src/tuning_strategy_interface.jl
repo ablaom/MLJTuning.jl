@@ -1,5 +1,5 @@
 abstract type TuningStrategy <: MLJBase.MLJType end
-show_as_constructed(::Type{<:TuningStrategy}) = true
+MLJBase.show_as_constructed(::Type{<:TuningStrategy}) = true
 
 # for initialization of state (compulsory)
 setup(tuning::TuningStrategy, model, range, verbosity) = range

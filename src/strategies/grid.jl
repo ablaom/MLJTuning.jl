@@ -57,11 +57,41 @@ end
 # Constructor with keywords
 Grid(; goal=nothing, resolution=10, shuffle=true,
      rng=Random.GLOBAL_RNG) =
-    Grid(goal, resolution, shuffle, rng)
+    Grid(goal, resolution, MLJBase.shuffle_and_rng(shuffle, rng)...)
+
+isnumeric(::Any) = false
+isnumeric(::NumericRange) = true
 
 function setup(tuning::Grid, model, user_range, verbosity)
-    range, resolutions = process_user_range(user_range, tuning.resolution, verbosity)
-    return range, resolution # temporary
+
+    # pre-process the user range (see src/ranges.jl):
+    ranges, resolutions = process_user_range(user_range,
+                                             tuning.resolution, verbosity)
+
+    if tuning.goal !== nothing
+        # get the product Π of the lengths of the NominalRanges:
+        len(::NumericRange) = 1
+        len(r::NominalRange) = length(r.values)
+        Π = reduce(*, len.(ranges))
+
+        n_numeric = sum(isnumeric.(ranges))
+
+        # compute new uniform resolution:
+        goal = tuning.goal/Π
+        resolution = round(Int, goal^(1/n_numeric))
+
+        # apply the new uniform  resolution:
+        resolutions = map(eachindex(resolutions)) do j
+            isnumeric(ranges[j]) ? resolution : nothing
+        end
+    end
+
+    if tuning.shuffle
+        return grid(tuning.rng, model, ranges, resolutions)
+    else
+        return grid(model, ranges, resolutions)
+    end
+
 end
 
 

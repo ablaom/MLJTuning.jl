@@ -2,7 +2,7 @@
 MLJBase.iterator(r::NominalRange, ::Nothing) = iterator(r)
 
 """
-    MLJTuning.grid(prototype, ranges, resolutions [, rng])
+    MLJTuning.grid([rng, ] prototype, ranges, resolutions)
 
 Given an iterable `ranges` of `ParamRange` objects, and an iterable
 `resolutions` of the same length, return a vector of models generated
@@ -17,7 +17,7 @@ the results. Otherwise models are ordered, with the first
 hyperparameter referenced cycling fastest.
 
 """
-grid(prototype::Model, ranges, resolutions, rng::AbstractRNG) =
+grid(rng::AbstractRNG, prototype::Model, ranges, resolutions) = 
     shuffle(rng, grid(prototype, ranges, resolutions))
 
 function grid(prototype::Model, ranges, resolutions)

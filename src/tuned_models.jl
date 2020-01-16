@@ -157,6 +157,14 @@ function event(model, resampling_machine, verbosity, tuning, history)
     fit!(resampling_machine, verbosity=verb)
     e = evaluate(resampling_machine)
     r = result(tuning, history, e)
+
+    if verbosity > 2
+        params(model)
+    end
+    if verbosity > 1
+        println("$r")
+    end
+
     return deepcopy(model), r
 end
 
