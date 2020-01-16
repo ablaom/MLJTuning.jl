@@ -76,5 +76,20 @@ r2 = range(super_model, :K, lower=1, upper=10, scale=:log10)
 
 end
 
+@testset "processing user specification of range" begin
+    r1 = range(Int, :h1, lower=1, upper=10)
+    r2 = range(Int, :h2, lower=20, upper=30)
+    s = range(Char, :j1, values = ['x', 'y'])
+    @test_throws ArgumentError MLJTuning.process_user_range("junk", 42, 1) 
+    @test(@test_logs((:warn, r"Ignoring"),
+                     MLJTuning.process_user_range((s, 3), 42, 1)) ==
+          ((s, ), (nothing, )))
+    @test MLJTuning.process_user_range(r1, 42, 1) == ((r1, ), (42, ))
+    @test MLJTuning.process_user_range((r1, 3), 42, 1) == ((r1, ), (3, ))
+    @test MLJTuning.process_user_range(s, 42, 1) == ((s, ), (nothing,))
+    @test MLJTuning.process_user_range([(r1, 3), r2, s], 42, 1) ==
+        ((r1, r2, s), (3, 42, nothing))
+end
+
 end
 true

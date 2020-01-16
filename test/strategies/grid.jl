@@ -15,21 +15,6 @@ x3 = rand(100)
 X = (x1=x1, x2=x2, x3=x3);
 y = 2*x1 .+ 5*x2 .- 3*x3 .+ 0.2*rand(100);
 
-@testset "processing user specification of range" begin
-    r1 = range(Int, :h1, lower=1, upper=10)
-    r2 = range(Int, :h2, lower=20, upper=30)
-    s = range(Char, :j1, values = ['x', 'y'])
-    @test_throws ArgumentError MLJTuning.process_user_range("junk", 42, 1) 
-    @test(@test_logs((:warn, r"Ignoring"),
-                     MLJTuning.process_user_range((s, 3), 42, 1)) ==
-          ((s, ), (nothing, )))
-    @test MLJTuning.process_user_range(r1, 42, 1) == ((r1, ), (42, ))
-    @test MLJTuning.process_user_range((r1, 3), 42, 1) == ((r1, ), (3, ))
-    @test MLJTuning.process_user_range(s, 42, 1) == ((s, ), (nothing,))
-    @test MLJTuning.process_user_range([(r1, 3), r2, s], 42, 1) ==
-        ((r1, r2, s), (3, 42, nothing))
-end
-
 # @testset "2-parameter tune, no nesting" begin
 
 #     sel = FeatureSelector()

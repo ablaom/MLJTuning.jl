@@ -59,41 +59,6 @@ Grid(; goal=nothing, resolution=10, shuffle=true,
      rng=Random.GLOBAL_RNG) =
     Grid(goal, resolution, shuffle, rng)
 
-"""
-    process_user_range(user_specified_range, resolution, verbosity)
-
-Utility to convert user-specified range (see [`Grid`](@ref)) into a
-pair of tuples `(ranges, resolutions)`. 
-
-For example, if `r1`, `r2` are `NumericRange`s and `s` is a
-NominalRange`, then we have:
-
-    julia> MLJTuning.process_user_range([(r1, 3), r2, s], 42, 1) ==
-                            ((r1, r2, s), (3, 42, nothing))
-    true
-
-If `verbosity` > 0, then a warning is issued if a `Nominal` range is
-paired with a resolution.  
-
-"""
-process_user_range(user_specified_range, resolution, verbosity) =
-    process_user_range([user_specified_range, ], resolution, verbosity)
-function process_user_range(user_specified_range::AbstractVector,
-                    resolution, verbosity)
-    stand(r) = throw(ArgumentError("Unsupported range. "))
-    stand(r::NumericRange) = (r, resolution)
-    stand(r::NominalRange) = (r, nothing)
-    stand(t::Tuple{NumericRange,Integer}) = t
-    function stand(t::Tuple{NominalRange,Integer})
-        verbosity < 0 ||
-            @warn  "Ignoring a resolution specified for a `NominalRange`. "
-        return (first(t), nothing)
-    end
-
-    ret = zip(stand.(user_specified_range)...) |> collect
-    return first(ret), last(ret)
-end
-
 function setup(tuning::Grid, model, user_range, verbosity)
     range, resolutions = process_user_range(user_range, tuning.resolution, verbosity)
     return range, resolution # temporary
