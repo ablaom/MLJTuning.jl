@@ -2,15 +2,11 @@ abstract type TuningStrategy <: MLJBase.MLJType end
 show_as_constructed(::Type{<:TuningStrategy}) = true
 
 # for initialization of state (compulsory)
-setup(tuning::TuningStrategy, model::M, range) where M =
-    range
+setup(tuning::TuningStrategy, model, range, verbosity) = range
 
 # for building each element of the history:
 result(tuning::TuningStrategy, history, e) =
     (measure=e.measure, measurement=e.measurement)
-
-result_type(tuning, model) =
-    NamedTuple{(:measure, :measurement),Tuple{Float64,Float64}}
 
 # for generating batches of new models and updating the state (but not
 # history):

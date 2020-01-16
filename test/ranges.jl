@@ -3,6 +3,7 @@ module TestRanges
 using Test
 using MLJBase
 using MLJTuning
+using Random
 
 # `in` for MLJType is overloaded to be `===` based. For purposed of
 # testing here, we need `==` based:
@@ -38,7 +39,9 @@ r2 = range(super_model, :K, lower=1, upper=10, scale=:log10)
 @testset "models from cartesian range and resolutions" begin
 
     # with method:
-    m1 = MLJTuning.models(super_model, [r1, r2], [nothing, 7])
+    m1 = MLJTuning.grid(super_model, [r1, r2], [nothing, 7])
+    m1r = MLJTuning.grid(super_model, [r1, r2], [nothing, 7],
+                           MersenneTwister(123))
 
     # generate all models by hand:
     models1 = [SuperModel(1, DummyModel(1.2, 9.5, 'c'), dummy_model),
@@ -55,9 +58,11 @@ r2 = range(super_model, :K, lower=1, upper=10, scale=:log10)
                SuperModel(10, DummyModel(1.2, 9.5, 'd'), dummy_model)]
 
     @test _issubset(models1, m1) && _issubset(m1, models1)
+    @test m1r != models1
+    @test _issubset(models1, m1r) && _issubset(m1, models1)
 
     # with method:
-    m2 = MLJTuning.models(super_model, [r1, r2], [1, 7])
+    m2 = MLJTuning.grid(super_model, [r1, r2], [1, 7])
 
     # generate all models by hand:
     models2 = [SuperModel(1, DummyModel(1.2, 9.5, 'c'), dummy_model),

@@ -17,6 +17,7 @@ using MLJBase
 using Distributed
 import ComputationalResources: CPU1, CPUProcesses,
     CPUThreads, AbstractResource
+using Random
 
 ## INCLUDE FILES
 
@@ -25,5 +26,6 @@ include("tuning_strategy_interface.jl")
 include("tuned_models.jl")
 include("ranges.jl")
 include("strategies/explicit.jl")
+include("strategies/grid.jl")
 end
 

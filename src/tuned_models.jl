@@ -188,7 +188,7 @@ function build(history, n, tuning, model::M,
     j = _length(history)
     models_exhausted = false
     while j < n && !models_exhausted
-        _models = models!(tuning, model, history, state)
+        _models = models!(tuning, model, history, state, verbosity)
         models = _models === nothing ? M[] : collect(_models)
         Δj = length(models)
         Δj == 0 && (models_exhausted = true)
@@ -220,7 +220,7 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
 
     # omitted: checks that measures are appropriate
 
-    state = setup(tuning, model, range)
+    state = setup(tuning, model, range, verbosity)
 
     # instantiate resampler (`model` to be replaced with mutated
     # clones during iteration below):

@@ -234,7 +234,7 @@ detailed below.
 #### The `setup` method: To initialize state 
 
 ```julia
-state = setup(tuning::MyTuningStrategy, model, range)
+state = setup(tuning::MyTuningStrategy, model, range, verbosity)
 ```
 
 The `setup` function is for initializing the mutable `state` of the
@@ -250,18 +250,22 @@ history, then it should be written to the history instead of stored in
 state. An example of this might be the `temperature` in simulated
 annealing.
 
+The `verbosity` is an integer indicating the level of logging: `0`
+means logging should be restricted to warnings, `-1`, completely
+silent. 
+
 The fallback for `setup` is:
 
 ```julia
-MLJTuning.setup(tuning::TuningStrategy, model, range) = range
+setup(tuning::TuningStrategy, model, range, verbosity) = range
 ```
 
 However, a tuning strategy will generally want to implement a `setup`
 method for each range type it is going to support:
 
 ```julia 
-MLJTuning.setup(tuning::MyTuningStrategy, model, range::RangeType1) = ...
-MLJTuning.setup(tuning::MyTuningStrategy, model, range::RangeType2) = ...
+MLJTuning.setup(tuning::MyTuningStrategy, model, range::RangeType1, verbosity) = ...
+MLJTuning.setup(tuning::MyTuningStrategy, model, range::RangeType2, verbosity) = ...
 etc.
 ```
 
@@ -269,7 +273,7 @@ etc.
 #### The `models!` method: For generating model batches to evaluate
 
 ```julia
-MLJTuning.models!(tuning::MyTuningStrategy, model, history, state)
+MLJTuning.models!(tuning::MyTuningStrategy, model, history, state, verbosity)
 ```
 
 This is the core method of a new implementation. Given the existing

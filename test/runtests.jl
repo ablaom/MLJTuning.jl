@@ -23,3 +23,7 @@ end
 @testset "ranges" begin
     @test include("ranges.jl")
 end
+
+@testset "grid" begin
+    @test include("strategies/grid.jl")
+end
