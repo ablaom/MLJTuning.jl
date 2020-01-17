@@ -4,7 +4,7 @@ const ParameterName=Union{Symbol,Expr}
     Grid(goal=nothing, resolution=10, rng=Random.GLOBAL_RNG, shuffle=true)
 
 Instantiate a Cartesian grid-based hyperparameter tuning strategy with
-a specified `goal` for the number of grid points, or a specified
+a specified number of grid points as `goal`, or using a specified
 default `resolution` in each numeric dimension.
 
 ### Supported ranges:
@@ -62,29 +62,29 @@ Grid(; goal=nothing, resolution=10, shuffle=true,
 isnumeric(::Any) = false
 isnumeric(::NumericRange) = true
 
+adjusted_resolutions(::Nothing,  ranges, resolutions) = resolutions
+function adjusted_resolutions(goal, ranges, resolutions)
+    # get the product Π of the lengths of the NominalRanges:
+    len(::NumericRange) = 1
+    len(r::NominalRange) = length(r.values)
+    Π = prod(len.(ranges))
+
+    n_numeric = sum(isnumeric.(ranges))
+
+    # compute new uniform resolution:
+    goal = goal/Π
+    res = round(Int, goal^(1/n_numeric))
+    return  map(eachindex(resolutions)) do j
+        isnumeric(ranges[j]) ? res : resolutions[j]
+    end
+end
+
 function setup(tuning::Grid, model, user_range, verbosity)
 
-    # pre-process the user range (see src/ranges.jl):
-    ranges, resolutions = process_user_range(user_range,
-                                             tuning.resolution, verbosity)
+    ranges, resolutions =
+        process_user_range(user_range, tuning.resolution, verbosity)
 
-    if tuning.goal !== nothing
-        # get the product Π of the lengths of the NominalRanges:
-        len(::NumericRange) = 1
-        len(r::NominalRange) = length(r.values)
-        Π = reduce(*, len.(ranges))
-
-        n_numeric = sum(isnumeric.(ranges))
-
-        # compute new uniform resolution:
-        goal = tuning.goal/Π
-        resolution = round(Int, goal^(1/n_numeric))
-
-        # apply the new uniform  resolution:
-        resolutions = map(eachindex(resolutions)) do j
-            isnumeric(ranges[j]) ? resolution : nothing
-        end
-    end
+    resolutions = adjusted_resolutions(tuning.goal, ranges, resolutions)
 
     if tuning.shuffle
         return grid(tuning.rng, model, ranges, resolutions)
@@ -94,33 +94,20 @@ function setup(tuning::Grid, model, user_range, verbosity)
 
 end
 
+MLJTuning.models!(tuning::Grid, model, history::Nothing,
+                  state, verbosity) = state
+MLJTuning.models!(tuning::Grid, model, history,
+                  state, verbosity) =
+    state[length(history) + 1:end]
 
-# # for building each element of the history:
-# result(tuning::TuningStrategy, history, e) =
-#     (measure=e.measure, measurement=e.measurement)
+function default_n(tuning::Grid, user_range)
+    ranges, resolutions =
+        process_user_range(user_range, tuning.resolution, -1)
 
-# # for generating batches of new models and updating the state (but not
-# # history):
-# function models! end
+    resolutions = adjusted_resolutions(tuning.goal, ranges, resolutions)
 
-# # for extracting the optimal model from the history:
-# function best(tuning::TuningStrategy, history)
-#    measurements = [h[2].measurement[1] for h in history]
-#    measure = first(history)[2].measure[1]
-#    if orientation(measure) == :score
-#        measurements = -measurements
-#        endusin
-       
-#    best_index = argmin(measurements)
-#    return history[best_index][1]
-# end
-
-# # for selecting what to report to the user apart from the optimal
-# # model:
-# tuning_report(tuning::TuningStrategy, history, state) = (history=history,)
-
-# # for declaring the default number of models to evaluate:
-# default_n(tuning::TuningStrategy, range) = 10
+    return prod(resolutions)
+end
 
 
 # #######
@@ -304,4 +291,4 @@ end
 
 #     return fitresult, cache, report
 
-# end 
+# end

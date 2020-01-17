@@ -36,13 +36,15 @@ s = range(super_model, :(model1.kernel), values=['c', 'd'])
 r1 = range(super_model, :(model1.lambda), lower=20, upper=31)
 r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
 
-@testset "setup" begin
+@testset "setup, default_n" begin
     user_range = [r1, (r2, 3), s]
 
     # with method:
     tuning = Grid(resolution=2, shuffle=false)
+    @test MLJTuning.default_n(tuning, user_range) == 12
     models1 = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
     tuning = Grid(resolution=2, rng=123)
+    @test MLJTuning.default_n(tuning, user_range) == 12
     models1r = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
 
     # by hand:
@@ -76,7 +78,8 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
     @test Set(m1) == Set(models1r)
 
     # with method:
-    tuning = Grid(goal=8, shuffle=false)
+    tuning = Grid(goal=9, shuffle=false)
+    @test MLJTuning.default_n(tuning, user_range) == 8
     models2 = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
 
     # by hand:

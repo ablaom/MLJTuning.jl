@@ -12,17 +12,17 @@ print("Loading some models for testing...")
 @everywhere include("models.jl")
 print("\r                                           \r")
 
-# @testset "utilities" begin
-#     @test include("utilities.jl")
-# end
+@testset "utilities" begin
+    @test include("utilities.jl")
+end
 
-# @testset "tuned_models.jl" begin
-#     @test include("tuned_models.jl")
-# end
+@testset "tuned_models.jl" begin
+    @test include("tuned_models.jl")
+end
 
-# @testset "ranges" begin
-#     @test include("ranges.jl")
-# end
+@testset "ranges" begin
+    @test include("ranges.jl")
+end
 
 @testset "grid" begin
     @test include("strategies/grid.jl")

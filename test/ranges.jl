@@ -83,12 +83,12 @@ end
     @test_throws ArgumentError MLJTuning.process_user_range("junk", 42, 1) 
     @test(@test_logs((:warn, r"Ignoring"),
                      MLJTuning.process_user_range((s, 3), 42, 1)) ==
-          ((s, ), (nothing, )))
+          ((s, ), (2, )))
     @test MLJTuning.process_user_range(r1, 42, 1) == ((r1, ), (42, ))
     @test MLJTuning.process_user_range((r1, 3), 42, 1) == ((r1, ), (3, ))
-    @test MLJTuning.process_user_range(s, 42, 1) == ((s, ), (nothing,))
+    @test MLJTuning.process_user_range(s, 42, 1) == ((s, ), (2,))
     @test MLJTuning.process_user_range([(r1, 3), r2, s], 42, 1) ==
-        ((r1, r2, s), (3, 42, nothing))
+        ((r1, r2, s), (3, 42, 2))
 end
 
 end

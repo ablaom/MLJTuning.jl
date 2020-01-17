@@ -159,7 +159,7 @@ function event(model, resampling_machine, verbosity, tuning, history)
     r = result(tuning, history, e)
 
     if verbosity > 2
-        params(model)
+        println(params(model))
     end
     if verbosity > 1
         println("$r")
