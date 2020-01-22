@@ -42,10 +42,12 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
     # with method:
     tuning = Grid(resolution=2, shuffle=false)
     @test MLJTuning.default_n(tuning, user_range) == 12
-    models1 = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
+    models1 =
+        params.((MLJTuning.setup(tuning, super_model, user_range, 3)).models)
     tuning = Grid(resolution=2, rng=123)
     @test MLJTuning.default_n(tuning, user_range) == 12
-    models1r = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
+    models1r =
+        params.((MLJTuning.setup(tuning, super_model, user_range, 3)).models)
 
     # by hand:
     m1 = [(K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
@@ -80,7 +82,8 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
     # with method:
     tuning = Grid(goal=9, shuffle=false)
     @test MLJTuning.default_n(tuning, user_range) == 8
-    models2 = params.(MLJTuning.setup(tuning, super_model, user_range, 3))
+    models2 =
+        params.((MLJTuning.setup(tuning, super_model, user_range, 3)).models)
 
     # by hand:
     m2 = [(K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),

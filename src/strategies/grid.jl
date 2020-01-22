@@ -84,19 +84,40 @@ function setup(tuning::Grid, model, user_range, verbosity)
         process_user_range(user_range, tuning.resolution, verbosity)
     resolutions = adjusted_resolutions(tuning.goal, ranges, resolutions)
 
-    if tuning.shuffle
-        return grid(tuning.rng, model, ranges, resolutions)
-    else
-        return grid(model, ranges, resolutions)
+    parameter_names = map(ranges) do r
+        string(r.field)
     end
+
+    parameter_scales = scale.(ranges)
+
+    if tuning.shuffle
+        models = grid(tuning.rng, model, ranges, resolutions)
+    else
+        models = grid(model, ranges, resolutions)
+    end
+
+    return (models=models,
+            parameter_names=parameter_names,
+            parameter_scales=parameter_scales)
 
 end
 
 MLJTuning.models!(tuning::Grid, model, history::Nothing,
-                  state, verbosity) = state
+                  state, verbosity) = state.models
 MLJTuning.models!(tuning::Grid, model, history,
                   state, verbosity) =
-    state[length(history) + 1:end]
+    state.models[length(history) + 1:end]
+
+function tuning_report(tuning::Grid, history, state)
+
+
+
+
+    return (history=history,
+            plotting=(parameter_names=state.parameter_names,
+                      parameter_scales=state.parameter_scales))
+
+end
 
 function default_n(tuning::Grid, user_range)
     ranges, resolutions =
