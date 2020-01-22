@@ -386,9 +386,14 @@ MLJTuning.default_n(::TuningStrategy) = 10
 
 The most rudimentary tuning strategy just evaluates every model in a
 specified list, such lists constituting the only kind of supported
-range. (In this special case `range` is an arbitrary iterator of models, which are `Probabilistic` or `Deterministic`, according to the type of the prototype `model`, which is otherwise ignored.) The fallback implementations for `result`,
-`best` and `report_history` suffice.  Here's the complete
-implementation:
+range. (In this special case `range` is an arbitrary iterator of
+models, which are `Probabilistic` or `Deterministic`, according to the
+type of the prototype `model`, which is otherwise ignored.) The
+fallback implementations for `setup`, `result`, `best` and
+`report_history` suffice.  In particular, there is not distinction
+between `range` and `state` in this case. 
+
+Here's the complete implementation:
 
 ```julia 
     
@@ -396,8 +401,11 @@ import MLJBase
     
 mutable struct Explicit <: TuningStrategy end
 
-# models! returns all models in the range at once:
-MLJTuning.models!(tuned_model::Explicit, history, state) = state # the range
+# models! returns all available models in the range at once:
+MLJTuning.models!(tuning::Explicit, model, history::Nothing,
+                  state, verbosity) = state
+MLJTuning.models!(tuning::Explicit, model, history,
+                  state, verbosity) = state[length(history) + 1:end]
 
 function MLJTuning.default_n(tuning::Explicit, range)
     try
@@ -406,8 +414,7 @@ function MLJTuning.default_n(tuning::Explicit, range)
         10
     end
 end
-
 ```
 
-For slightly less trivial example, see [here]().
-> 
+For slightly less trivial example, see
+[here](https://github.com/ablaom/MLJTuning.jl/blob/master/src/strategies/grid.jl). 
