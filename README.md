@@ -51,7 +51,7 @@ begin, on the basis of the specific strategy and a user-specified
   `cross_entropy`) report a loss (or score) for each provided
   observation, while others (e.g., `auc`) report only an aggregated
   value (the `per_observation` entries being recorded as
-  `missing`). This and other behaviour can be inspected using trait
+  `missing`). This and other behavior can be inspected using trait
   functions. Do `info(rms)` to view the trait values for the `rms` loss, and
   see [Performance
   measures](https://alan-turing-institute.github.io/MLJ.jl/dev/performance_measures/)
@@ -90,7 +90,7 @@ begin, on the basis of the specific strategy and a user-specified
   types are provided by MLJBase)
   
   - a tuple `(p, r)` where `p` is one of the above range objects, and
-    `r` a resolution to overide the default `resolution` of the
+    `r` a resolution to override the default `resolution` of the
     strategy
   
   - vectors of objects of the above forms
@@ -122,7 +122,7 @@ of the `TunedModel` wrapper type, which has these principal fields:
   
 - `acceleration`: the computational resources to be applied (e.g.,
   `CPUProcesses()` for distributed computing and `CPUThreads()` for
-  multithreaded processing)
+  multi-threaded processing)
   
 - `acceleration_resampling`: the computational resources to be applied
   at the level of resampling (e.g., in cross-validation)
@@ -152,7 +152,7 @@ Several functions are part of the tuning strategy API:
 
 **Important note on history** The initialization and update of the
 history is carried out internally, i.e., is not the responsibility of
-the tuning strategy implementatin. The history is always initalized to
+the tuning strategy implementation. The history is always initialized to
 `nothing`, rather than an empty vector.
 
 The above functions are discussed further below, after discussing types.
@@ -171,16 +171,17 @@ defaults. Here's an example:
 
 ```julia
 mutable struct Grid <: TuningStrategy
+    goal::Union{Nothing,Int}
     resolution::Int
-    acceleration::ComputationalResources.AbstractResource
-
+    shuffle::Bool
+    rng::Random.AbstractRNG
 end
 
 # Constructor with keywords
-Grid(; resolution=10, acceleration=MLJTuning.DEFAULT_RESOURCE[]) = 
-    Grid(resolution, acceleration)
+Grid(; goal=nothing, resolution=10, shuffle=true,
+     rng=Random.GLOBAL_RNG) =
+    Grid(goal, resolution, MLJBase.shuffle_and_rng(shuffle, rng)...)
 ```
-
 
 #### Range types
 
@@ -188,12 +189,12 @@ A type definition is required for each range object a tuning strategy
 should like to handle. The following range types are available
 out-of-the box (re-exported from MLJBase):
 
-- The one-dimensional range types `NumericRange` and `OrdinalRange`
+- The one-dimensional range types `NumericRange` and `NomincalRange`
   (subtypes of `ParamRange`)
 
 - `Vector{ParamRange}` for Cartesian products
   
-Recall that `OrdinalRange` has a `values` field, while `NominalRange`
+Recall that `NominalRange` has a `values` field, while `NominalRange`
 has the fields `upper`, `lower`, `scale`, `unit` and `origin`. The
 `unit` field specifies a preferred length scale, while `origin` a
 preferred "central value". These default to `(upper - lower)/2` and
@@ -212,7 +213,7 @@ name", such as `:(atom.max_depth)`.
 `ParamRange` object `r`, use `iterator(r, n, [, rng])` where `n` is
 the number of grid points (maybe less for integer grids, due to
 rounding) and `rng` an optional random number generator to shuffle the
-output. Query `OrdinalRange`, `NominalRange` and `iterator` doc
+output. Query `NominalRange`, `NominalRange` and `iterator` doc
 strings for further details. For multi-dimensional grids, use the
 `unwind` function on the one-dimensional grids.
 
@@ -317,7 +318,7 @@ return a single model.
 If the tuning algorithm exhausts it's supply of new models (because,
 for example, there is only a finite supply) then `models!` should
 return an empty vector. Under the hood, there is no fixed "batch-size"
-parameter, and the tuning algororithm is happy to receive any number
+parameter, and the tuning algorithm is happy to receive any number
 of models.
 
 
@@ -382,7 +383,7 @@ MLJTuning.default_n(tuning::MyTuningStrategy)
 ```
 
 More precisely, the `methods!` method (which is allowed to return
-mutliple models) is called until the number of models exceeds
+multiple models) is called until the number of models exceeds
 `default_n(tuning)`, or `methods!` returns an empty list.
 
 The fallback is 
