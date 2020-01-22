@@ -30,31 +30,46 @@ r = [m(K) for K in 2:13]
 end
 
 results = [(evaluate(model, X, y,
-                     resampling=Holdout(),
+                     resampling=CV(nfolds=2),
                      measure=rms,
                      verbosity=0,)).measurement[1] for model in r]
 
 @testset "measure compatibility check" begin
-    tm = TunedModel(model=first(r), range=r, resampling=Holdout(),
+    tm = TunedModel(model=first(r), range=r, resampling=CV(nfolds=2),
                     measures=cross_entropy)
     @test_throws ArgumentError fit(tm, 0, X, y)
 end
 
 @testset_accelerated "basic fit" accel (exclude=[CPUThreads],) begin
     best_index = argmin(results)
-    tm = TunedModel(model=first(r), range=r, resampling=Holdout(),
+    tm = TunedModel(model=first(r), range=r, resampling=CV(nfolds=2),
                     measures=[rms, l1], acceleration=accel)
     fitresult, meta_state, report = fit(tm, 0, X, y);
     history, _, state = meta_state;
-    @test map(event -> last(event).measurement[1], history) ≈ results
+    results2 = map(event -> last(event).measurement[1], history)
+    @test results2 ≈ results
     @test fitresult.model == collect(r)[best_index]
     @test report.best_model == collect(r)[best_index]
     @test report.history == history
 end
 
+@testset_accelerated "accel. resampling" accel (exclude=[CPUThreads],) begin
+    tm = TunedModel(model=first(r), range=r, resampling=CV(nfolds=2),
+                    measures=[rms, l1], acceleration_resampling=accel)
+    fitresult, meta_state, report = fit(tm, 0, X, y);
+    history, _, state = meta_state;
+    results3 = map(event -> last(event).measurement[1], history)
+    @test results3 ≈ results
+end
+
+
 @testset_accelerated("under/over supply of models", accel,
                      (exclude=[CPUThreads],), begin
-    tm = TunedModel(model=first(r), range=r, measures=[rms, l1], n=4)
+                     tm = TunedModel(model=first(r),
+                                     range=r, measures=[rms, l1],
+                                     acceleration=accel,
+                                     resampling=CV(nfolds=2),
+                                     n=4)
     mach = machine(tm, X, y)
     fit!(mach)
     history = MLJBase.report(mach).history

@@ -126,6 +126,9 @@ of the `TunedModel` wrapper type, which has these principal fields:
   `CPUProcesses()` for distributed computing and `CPUThreads()` for
   multithreaded processing)
   
+- `acceleration_resampling`: the computational resources to be applied
+  at the level of resampling (e.g., in cross-validation)
+  
 
 ### Implementation requirements for new tuning strategies
 

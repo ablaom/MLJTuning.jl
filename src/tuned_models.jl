@@ -12,6 +12,7 @@ mutable struct DeterministicTunedModel{T,M<:Deterministic,R} <: MLJBase.Determin
     repeats::Int
     n::Union{Int,Nothing}
     acceleration::AbstractResource
+    acceleration_resampling::AbstractResource
     check_measure::Bool
 end
 
@@ -27,6 +28,7 @@ mutable struct ProbabilisticTunedModel{T,M<:Probabilistic,R} <: MLJBase.Probabil
     repeats::Int
     n::Union{Int,Nothing}
     acceleration::AbstractResource
+    acceleration_resampling::AbstractResource
     check_measure::Bool
 end
 
@@ -48,6 +50,7 @@ MLJBase.is_wrapper(::Type{<:EitherTunedModel}) = true
                              n=default_n(tuning, range),
                              train_best=true,
                              acceleration=default_resource(),
+                             acceleration_resampling=CPU1(),
                              check_measure=true)
 
 Construct a model wrapper for hyperparameter optimization of a
@@ -107,6 +110,7 @@ function TunedModel(;model=nothing,
                     repeats=1,
                     n=default_n(tuning, range),
                     acceleration=default_resource(),
+                    acceleration_resampling=CPU1(),
                     check_measure=true)
 
     range === nothing && error("You need to specify `range=...` unless "*
@@ -119,12 +123,16 @@ function TunedModel(;model=nothing,
         tuned_model = DeterministicTunedModel(model, tuning, resampling,
                                        measure, weights, operation, range,
                                               train_best, repeats, n,
-                                              acceleration, check_measure)
+                                              acceleration,
+                                              acceleration_resampling,
+                                              check_measure)
     elseif model isa Probabilistic
         tuned_model = ProbabilisticTunedModel(model, tuning, resampling,
                                        measure, weights, operation, range,
                                               train_best, repeats, n,
-                                              acceleration, check_measure)
+                                              acceleration,
+                                              acceleration_resampling,
+                                              check_measure)
     else
         error("Only `Deterministic` and `Probabilistic` "*
               "model types supported.")
@@ -239,7 +247,8 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
                           weights       = tuned_model.weights,
                           operation     = tuned_model.operation,
                           check_measure = tuned_model.check_measure,
-                          repeats       = tuned_model.repeats)
+                          repeats       = tuned_model.repeats,
+                          acceleration  = tuned_model.acceleration_resampling)
     resampling_machine = machine(resampler, data...)
 
     history = build(nothing, n, tuning, model, state,
