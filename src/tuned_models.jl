@@ -46,7 +46,7 @@ MLJBase.is_wrapper(::Type{<:EitherTunedModel}) = true
                              weights=nothing,
                              repeats=1,
                              operation=predict,
-                             range=ParamRange[],
+                             range=nothing,
                              n=default_n(tuning, range),
                              train_best=true,
                              acceleration=default_resource(),
@@ -60,11 +60,9 @@ Calling `fit!(mach)` on a machine `mach=machine(tuned_model, X, y)` or
 `mach=machine(tuned_model, X, y, w)` will:
 
 - Instigate a search, over clones of `model`, with the hyperparameter
-  mutations specified by `range`, for a model optimizing the
-  specified `measure`, using performance evaluations carried out using
-  the specified `tuning` strategy and `resampling` strategy. If
-  `measure` supports weights (`supports_weights(measure) == true`)
-  then any `weights` specified will be passed to the measure.
+  mutations specified by `range`, for a model optimizing the specified
+  `measure`, using performance evaluations carried out using the
+  specified `tuning` strategy and `resampling` strategy.
 
 - Fit an internal machine, based on the optimal model
   `fitted_params(mach).best_model`, wrapping the optimal `model`
@@ -72,6 +70,19 @@ Calling `fit!(mach)` on a machine `mach=machine(tuned_model, X, y)` or
   `predict(mach, Xnew)` then returns predictions on `Xnew` of this
   internal machine. The final train can be supressed by setting
   `train_best=false`.
+
+The `range` objects supported depend on the `tuning` strategy
+specified. Query the `strategy` docstring for details. To optimize
+over an explicit list `v` of models of the same type, use
+`strategy=Explicit()` and specify `model=v[1]` and `range=v`.
+
+If `measure` supports weights (`supports_weights(measure) == true`)
+then any `weights` specified will be passed to the measure. If more
+than one `measure` is specified, then only the first is optimized
+(unless `strategy` is multi-objective) but the performance against
+every measure specified will be computed and reported in
+`report(mach).best_performance` and other relevant attributes of the
+generated report.
 
 Specify `repeats > 1` for repeated resampling per model evaluation. See
 [`evaluate!](@ref) options for details.

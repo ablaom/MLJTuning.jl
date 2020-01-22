@@ -89,7 +89,7 @@ begin, on the basis of the specific strategy and a user-specified
   - one-dimensional `NumericRange` or `NominalRange` objects (these
   types are provided by MLJBase)
   
-  - a *pair* `(p, r)` where `p` is one of the above range objects, and
+  - a tuple `(p, r)` where `p` is one of the above range objects, and
     `r` a resolution to overide the default `resolution` of the
     strategy
   
