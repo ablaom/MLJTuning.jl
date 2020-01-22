@@ -93,11 +93,9 @@ begin, on the basis of the specific strategy and a user-specified
     `r` a resolution to overide the default `resolution` of the
     strategy
   
-  - vectors of the above two objects
+  - vectors of objects of the above forms
 
-**Important note on history initialization:** The history is always
-initialized to `nothing`, rather than an empty vector.
-  
+
 ### Interface points for user input
 
 Recall, for context, that in MLJ tuning is implemented as a model
@@ -141,7 +139,7 @@ Several functions are part of the tuning strategy API:
 - `result`: for building each element of the history 
 
 - `models!`: for generating batches of new models and updating the
-  state (*Note:* The history is updated automatically) (compulsory)
+  state (compulsory)
 
 - `best`: for extracting the optimal model (and its performance) from
   the history
@@ -149,12 +147,15 @@ Several functions are part of the tuning strategy API:
 - `tuning_report`: for selecting what to report to the user apart from
   the optimal model 
 
-- `default_n`: to specify the number of models to be evaluated
+- `default_n`: to specify the number of models to be evaluated when
+  `n` is not specified by the user
 
-- `result_type`: to declare the type of object returned by `result` method (for performance, optional)
+**Important note on history** The initialization and update of the
+history is carried out internally, i.e., is not the responsibility of
+the tuning strategy implementatin. The history is always initalized to
+`nothing`, rather than an empty vector.
 
-
-These are outlined below, after discussing types.
+The above functions are discussed further below, after discussing types.
 
 
 #### The tuning strategy type
