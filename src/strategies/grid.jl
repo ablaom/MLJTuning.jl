@@ -80,10 +80,8 @@ function adjusted_resolutions(goal, ranges, resolutions)
 end
 
 function setup(tuning::Grid, model, user_range, verbosity)
-
     ranges, resolutions =
         process_user_range(user_range, tuning.resolution, verbosity)
-
     resolutions = adjusted_resolutions(tuning.goal, ranges, resolutions)
 
     if tuning.shuffle

@@ -105,7 +105,7 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
 end
 
 
-@testset "2-parameter tune, no nesting" begin
+@testset "2-parameter tune, with nesting" begin
 
     sel = FeatureSelector()
     stand = UnivariateStandardizer()
@@ -163,118 +163,57 @@ end
 
 end
 
-# #@testset "multiple resolutions" begin
+@testset "basic tuning with training weights" begin
 
-#     forest = EnsembleModel(atom=KNNRegressor())
-#     pipe = @pipeline MyPipe(sel=FeatureSelector(), forest=forest)
+    seed!(1234)
+    N = 100
+    X = (x = rand(3N), );
+    y = categorical(rand("abc", 3N));
+    model = KNNClassifier()
+    r = range(model, :K, lower=2, upper=N)
+    tuned_model = TunedModel(model=model,
+                             tuning=Grid(), measure=BrierScore(),
+                             resampling=Holdout(fraction_train=2/3),
+                             range=r)
 
-#     X = MLJ.table(rand(150, 2), names=[:x1, :x2])
-#     y = rand(150)
+    # no weights:
+    tuned = machine(tuned_model, X, y)
+    fit!(tuned)
+    best1 = fitted_params(tuned).best_model
+    posterior1 = average([predict(tuned, X)...])
 
-#     r1 = range(pipe, :(sel.features), values=[[:x1,], [:x1, :x2]])
-#     r2 = range(pipe, :(forest.atom.K), lower = 1, upper=50)
-#     r3 = range(pipe, :(forest.bagging_fraction), lower=0.5, upper=1.0)
-#     ranges = [r1, r2, r3]
+    # uniform weights:
+    tuned = machine(tuned_model, X, y, fill(1, 3N))
+    fit!(tuned)
+    best2 = fitted_params(tuned).best_model
+    posterior2 = average([predict(tuned, X)...])
 
-#     holdout = Holdout(fraction_train=0.8)
-#     grid = Grid(resolution=5)
+    @test best1 == best2
+    @test all([pdf(posterior1, c) ≈ pdf(posterior2, c) for c in levels(y)])
 
-#     tuned = TunedModel(model=pipe, tuning=grid,
-#                        resampling=holdout, measure=rms,
-#                        ranges=ranges)
+    # skewed weights:
+    w = map(y) do η
+        if η == 'a'
+            return 2
+        elseif η == 'b'
+            return 4
+        else
+            return 1
+        end
+    end
+    tuned = machine(tuned_model, X, y, w)
+    fit!(tuned)
+    best3 = fitted_params(tuned).best_model
+    posterior3 = average([predict(tuned, X)...])
 
-#     mach = machine(tuned, X, y)
+    # different tuning outcome:
+    @test best1.K != best3.K
 
-#     function num_grid_points(resolution)
-#         grid.resolution = resolution
-#         fit!(mach)
-#         return report(mach).measurements |> length
-#     end
+    # "posterior" is skewed appropriately in weighted case:
+    @test abs(pdf(posterior3, 'b')/(2*pdf(posterior3, 'a'))  - 1) < 0.15
+    @test abs(pdf(posterior3, 'b')/(4*pdf(posterior3, 'c'))  - 1) < 0.15
 
-#     @test num_grid_points(6) == 72
-#     @test num_grid_points([:(forest.atom.K)=>7,
-#                            :(forest.bagging_fraction)=>4]) == 56
-#     @test num_grid_points([:(forest.atom.K)=>6, ]) == 60
-
-
-#     @testset "one parameter tune" begin
-#         ridge = FooBarRegressor()
-#         r = range(ridge, :lambda, lower=1e-7, upper=1e-3, scale=:log)
-#         tuned_model = TunedModel(model=ridge, ranges=r)
-#         tuned = machine(tuned_model, X, y)
-#         fit!(tuned)
-#         report(tuned)
-#     end
-
-# #end
-
-# @testset "nested parameter tune" begin
-#     tree_model = KNNRegressor()
-#     forest_model = EnsembleModel(atom=tree_model)
-#     r1 = range(forest_model, :(atom.K), lower=3, upper=4)
-#     r2 = range(forest_model, :bagging_fraction, lower=0.4, upper=1.0);
-#     self_tuning_forest_model = TunedModel(model=forest_model,
-#                                           tuning=Grid(resolution=3),
-#                                           resampling=Holdout(),
-#                                           ranges=[r1, r2],
-#                                           measure=rms)
-#     self_tuning_forest = machine(self_tuning_forest_model, X, y)
-#     fit!(self_tuning_forest, verbosity=2)
-#     r = report(self_tuning_forest)
-#     @test length(unique(r.measurements)) == 6
-# end
-
-# @testset "basic tuning with training weights" begin
-
-#     N = 100
-#     X = (x = rand(3N), );
-#     y = categorical(rand("abc", 3N));
-#     model = KNNClassifier()
-#     r = range(model, :K, lower=2, upper=N)
-#     tuned_model = TunedModel(model=model,
-#                              measure=MLJ.BrierScore(),
-#                              resampling=Holdout(fraction_train=2/3),
-#                              range=r)
-
-#     # no weights:
-#     tuned = machine(tuned_model, X, y)
-#     fit!(tuned)
-#     best1 = fitted_params(tuned).best_model
-#     posterior1 = average([predict(tuned, X)...])
-
-#     # uniform weights:
-#     tuned = machine(tuned_model, X, y, fill(1, 3N))
-#     fit!(tuned)
-#     best2 = fitted_params(tuned).best_model
-#     posterior2 = average([predict(tuned, X)...])
-
-#     @test best1 == best2
-#     @test all([pdf(posterior1, c) ≈ pdf(posterior2, c) for c in levels(y)])
-
-#     # skewed weights:
-#     w = map(y) do η
-#         if η == 'a'
-#             return 2
-#         elseif η == 'b'
-#             return 4
-#         else
-#             return 1
-#         end
-#     end
-#     tuned = machine(tuned_model, X, y, w)
-#     fit!(tuned)
-#     best3 = fitted_params(tuned).best_model
-#     posterior3 = average([predict(tuned, X)...])
-
-#     # different tuning outcome:
-#     @test best1.K != best3.K
-
-#     # "posterior" is skewed appropriately in weighted case:
-#     @test abs(pdf(posterior3, 'b')/(2*pdf(posterior3, 'a'))  - 1) < 0.15
-#     @test abs(pdf(posterior3, 'b')/(4*pdf(posterior3, 'c'))  - 1) < 0.15
-
-
-# end
+end
 
 
 # ## LEARNING CURVE

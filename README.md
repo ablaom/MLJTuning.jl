@@ -50,7 +50,7 @@ begin, on the basis of the specific strategy and a user-specified
   for details. Recall also that some measures in MLJ (e.g.,
   `cross_entropy`) report a loss (or score) for each provided
   observation, while others (e.g., `auc`) report only an aggregated
-  value (the per-observation entries being recorded as
+  value (the `per_observation` entries being recorded as
   `missing`). This and other behaviour can be inspected using trait
   functions. Do `info(rms)` to view the trait values for the `rms` loss, and
   see [Performance
@@ -84,11 +84,17 @@ begin, on the basis of the specific strategy and a user-specified
   to be searched. This definition is intentionally broad and the
   interface places no restriction on the allowed types of this
   object. As an example, the `Grid` tuning strategy type supports the
-  one-dimensional `NumericRange` or `NominalRange` objects (these
-  types are provided by MLJBase), or vectors of such objects,
-  which are sampled using the `resolution` hyperparameter. However,
-  `Grid` also supports a vector of 1D range/resolution pairs.
+  following range objects:
   
+  - one-dimensional `NumericRange` or `NominalRange` objects (these
+  types are provided by MLJBase)
+  
+  - a *pair* `(p, r)` where `p` is one of the above range objects, and
+    `r` a resolution to overide the default `resolution` of the
+    strategy
+  
+  - vectors of the above two objects
+
 **Important note on history initialization:** The history is always
 initialized to `nothing`, rather than an empty vector.
   
@@ -410,3 +416,4 @@ end
 ```
 
 For slightly less trivial example, see [here]().
+> 
