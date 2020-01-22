@@ -22,11 +22,14 @@ m(K) = KNNRegressor(K=K)
 r = [m(K) for K in 2:13]
 
 @testset "constructor" begin
-    @test_throws ErrorException TunedModel(model=first(r), measure=rms)
-    @test_throws ErrorException TunedModel(range=r, measure=rms)
-    @test_throws ErrorException TunedModel(model=42, range=r, measure=rms)
+    @test_throws ErrorException TunedModel(model=first(r), tuning=Explicit(),
+                                           measure=rms)
+    @test_throws ErrorException TunedModel(tuning=Explicit(),
+                                           range=r, measure=rms)
+    @test_throws ErrorException TunedModel(model=42, tuning=Explicit(),
+                                           range=r, measure=rms)
     @test_logs((:info, r"No measure specified"),
-               TunedModel(model=first(r), range=r))
+               TunedModel(model=first(r), tuning=Explicit(), range=r))
 end
 
 results = [(evaluate(model, X, y,
@@ -35,14 +38,16 @@ results = [(evaluate(model, X, y,
                      verbosity=0,)).measurement[1] for model in r]
 
 @testset "measure compatibility check" begin
-    tm = TunedModel(model=first(r), range=r, resampling=CV(nfolds=2),
+    tm = TunedModel(model=first(r), tuning=Explicit(),
+                    range=r, resampling=CV(nfolds=2),
                     measures=cross_entropy)
     @test_throws ArgumentError fit(tm, 0, X, y)
 end
 
 @testset_accelerated "basic fit" accel (exclude=[CPUThreads],) begin
     best_index = argmin(results)
-    tm = TunedModel(model=first(r), range=r, resampling=CV(nfolds=2),
+    tm = TunedModel(model=first(r), tuning=Explicit(),
+                    range=r, resampling=CV(nfolds=2),
                     measures=[rms, l1], acceleration=accel)
     fitresult, meta_state, report = fit(tm, 0, X, y);
     history, _, state = meta_state;
@@ -54,7 +59,8 @@ end
 end
 
 @testset_accelerated "accel. resampling" accel (exclude=[CPUThreads],) begin
-    tm = TunedModel(model=first(r), range=r, resampling=CV(nfolds=2),
+    tm = TunedModel(model=first(r), tuning=Explicit(),
+                    range=r, resampling=CV(nfolds=2),
                     measures=[rms, l1], acceleration_resampling=accel)
     fitresult, meta_state, report = fit(tm, 0, X, y);
     history, _, state = meta_state;
@@ -62,10 +68,9 @@ end
     @test results3 ≈ results
 end
 
-
 @testset_accelerated("under/over supply of models", accel,
                      (exclude=[CPUThreads],), begin
-                     tm = TunedModel(model=first(r),
+                     tm = TunedModel(model=first(r), tuning=Explicit(),
                                      range=r, measures=[rms, l1],
                                      acceleration=accel,
                                      resampling=CV(nfolds=2),
