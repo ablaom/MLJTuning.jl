@@ -36,7 +36,7 @@ results = [(evaluate(model, X, y, resampling=Holdout(),
     best_index = argmin(results)
     tm = TunedModel(model=first(r), range=r, resampling=Holdout(),
                     measures=[rms, l1], acceleration=accel)
-    fitresult, meta_state, report = fit(tm, 0, X, y);
+    fitresult, meta_state, report = fit(tm, 2, X, y);
     history, _, state = meta_state;
     @test map(event -> last(event).measurement[1], history) ≈ results
     @test fitresult.model == collect(r)[best_index]

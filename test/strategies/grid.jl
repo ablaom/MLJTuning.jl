@@ -49,25 +49,25 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
 
     # by hand:
     m1 = [(K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 3, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 3, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
            model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
            model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 3, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 3, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
            model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
@@ -84,17 +84,17 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
 
     # by hand:
     m2 = [(K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'c'),
            model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'c'),
            model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 1, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 1, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
-           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k')) 
+           model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 20.0, metric = 9.5, kernel = 'd'),
            model2 = (lambda = 1.2, metric = 9.5, kernel = 'k'))
           (K = 11, model1 = (lambda = 31.0, metric = 9.5, kernel = 'd'),
@@ -105,63 +105,63 @@ r2 = range(super_model, :K, lower=1, upper=11, scale=:log10)
 end
 
 
-# @testset "2-parameter tune, no nesting" begin
+@testset "2-parameter tune, no nesting" begin
 
-#     sel = FeatureSelector()
-#     stand = UnivariateStandardizer()
-#     ridge = FooBarRegressor()
-#     composite = SimpleDeterministicCompositeModel(transformer=sel, model=ridge)
+    sel = FeatureSelector()
+    stand = UnivariateStandardizer()
+    ridge = FooBarRegressor()
+    composite = SimpleDeterministicCompositeModel(transformer=sel, model=ridge)
 
-#     features_ = range(composite, :(transformer.features),
-#                       values=[[:x1], [:x1, :x2], [:x2, :x3], [:x1, :x2, :x3]])
-#     lambda_ = range(composite, :(model.lambda),
-#                     lower=1e-6, upper=1e-1, scale=:log10)
+    features_ = range(composite, :(transformer.features),
+                      values=[[:x1], [:x1, :x2], [:x2, :x3], [:x1, :x2, :x3]])
+    lambda_ = range(composite, :(model.lambda),
+                    lower=1e-6, upper=1e-1, scale=:log10)
 
-#     ranges = [features_, lambda_]
+    r = [features_, lambda_]
 
-#     holdout = Holdout(fraction_train=0.8)
-#     grid = Grid(resolution=10)
+    holdout = Holdout(fraction_train=0.8)
+    grid = Grid(resolution=10)
 
-#     tuned_model = TunedModel(model=composite, tuning=grid,
-#                              resampling=holdout, measure=rms,
-#                              ranges=ranges, full_report=false)
+    tuned_model = TunedModel(model=composite, tuning=grid,
+                             resampling=holdout, measure=rms,
+                             range=r)
 
-#     MLJBase.info_dict(tuned_model)
+    MLJBase.info_dict(tuned_model)
 
-#     tuned = machine(tuned_model, X, y)
+    tuned = machine(tuned_model, X, y)
 
-#     fit!(tuned)
-#     r = report(tuned)
-#     @test r.best_report isa NamedTuple{(:machines, :reports)}
-#     tuned_model.full_report=true
-#     fit!(tuned)
-#     report(tuned)
-#     fp = fitted_params(tuned)
-#     @test fp.best_fitted_params isa NamedTuple{(:machines, :fitted_params)}
-#     b = fp.best_model
-#     @test b isa SimpleDeterministicCompositeModel
+    fit!(tuned, verbosity=0)
+    r = report(tuned)
+    @test r.best_report isa NamedTuple{(:machines, :reports)}
+    fit!(tuned)
+    rep = report(tuned)
+    fp = fitted_params(tuned)
+    @test fp.best_fitted_params isa NamedTuple{(:machines, :fitted_params)}
+    b = fp.best_model
+    @test b isa SimpleDeterministicCompositeModel
 
-#     measurements = tuned.report.measurements
-#     # should be all different:
-#     @test length(unique(measurements)) == length(measurements)
+    measurements = map(x->x.measurement[1], last.(tuned.report.history))
+    # should be all different:
+    @test length(unique(measurements)) == length(measurements)
 
-#     @test length(b.transformer.features) == 3
-#     @test abs(b.model.lambda - 0.027825) < 1e-6
+    @test length(b.transformer.features) == 3
+    @test abs(b.model.lambda - 0.027825) < 1e-6
 
-#     # get the training error of the tuned_model:
-#     e = rms(y, predict(tuned, X))
+    # get the training error of the tuned_model:
+    e = rms(y, predict(tuned, X))
 
-#     # check this error has same order of magnitude as best measurement
-#     # during tuning:
-#     r = e/tuned.report.best_measurement
-#     @test r < 10 && r > 0.1
+    # check this error has same order of magnitude as best measurement
+    # during tuning:
+    e_training = tuned.report.best_result.measurement[1]
+    ratio = e/e_training
+    @test ratio < 10 && ratio > 0.1
 
-#     # test weights:
-#     tuned_model.weights = rand(length(y))
-#     fit!(tuned)
-#     @test tuned.report.measurements[1] != measurements[1]
+    # test weights:
+    tuned_model.weights = rand(length(y))
+    fit!(tuned)
+    @test e_training != tuned.report.best_result.measurement[1]
 
-# end
+end
 
 # #@testset "multiple resolutions" begin
 

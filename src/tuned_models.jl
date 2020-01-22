@@ -42,7 +42,7 @@ MLJBase.is_wrapper(::Type{<:EitherTunedModel}) = true
                              weights=nothing,
                              repeats=1,
                              operation=predict,
-                             ranges=ParamRange[],
+                             range=ParamRange[],
                              n=default_n(tuning, range),
                              train_best=true,
                              acceleration=default_resource())
@@ -54,7 +54,7 @@ Calling `fit!(mach)` on a machine `mach=machine(tuned_model, X, y)` or
 `mach=machine(tuned_model, X, y, w)` will:
 
 - Instigate a search, over clones of `model`, with the hyperparameter
-  mutations specified by `ranges`, for a model optimizing the
+  mutations specified by `range`, for a model optimizing the
   specified `measure`, using performance evaluations carried out using
   the specified `tuning` strategy and `resampling` strategy. If
   `measure` supports weights (`supports_weights(measure) == true`)
@@ -242,15 +242,16 @@ function MLJBase.fit(tuned_model::EitherTunedModel{T,M},
     history = build(nothing, n, tuning, model, state,
                     verbosity, acceleration, resampling_machine)
 
-    best_model = best(tuning, history)
+    best_model, best_result = best(tuning, history)
     fitresult = machine(best_model, data...)
 
     if tuned_model.train_best
         fit!(fitresult, verbosity=verbosity - 1)
-        prereport = (best_model=best_model,
+        prereport = (best_model=best_model, best_result=best_result,
                      best_report=MLJBase.report(fitresult))
     else
-        prereport = (best_model=best_model, best_report=missing)
+        prereport = (best_model=best_model, best_result=best_result,
+                     best_report=missing)
     end
 
     report = merge(prereport, tuning_report(tuning, history, state))
@@ -286,15 +287,17 @@ function MLJBase.update(tuned_model::EitherTunedModel, verbosity::Integer,
             "lowered.\nTruncating existing tuning history and "*
             "retraining new best model."
         end
-        best_model = best(tuning, history)
+        best_model, best_result = best(tuning, history)
 
         fitresult = machine(best_model, data...)
 
         if tuned_model.train_best
-            fit!(fitresult, verbosity=verbosity-1)
-            prereport = (best_model=best_model, best_report=report(fitresult))
+            fit!(fitresult, verbosity=verbosity - 1)
+            prereport = (best_model=best_model, best_result=best_result,
+                         best_report=MLJBase.report(fitresult))
         else
-            prereport = (best_model=best_model, best_report=missing)
+            prereport = (best_model=best_model, best_result=best_result,
+                         best_report=missing)
         end
 
         _report = merge(prereport, tuning_report(tuning, history, state))

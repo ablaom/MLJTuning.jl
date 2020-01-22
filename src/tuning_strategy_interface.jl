@@ -12,7 +12,8 @@ result(tuning::TuningStrategy, history, e) =
 # history):
 function models! end
 
-# for extracting the optimal model from the history:
+# for extracting the optimal model (and its performance) from the
+# history:
 function best(tuning::TuningStrategy, history)
    measurements = [h[2].measurement[1] for h in history]
    measure = first(history)[2].measure[1]
@@ -20,7 +21,7 @@ function best(tuning::TuningStrategy, history)
        measurements = -measurements
    end
    best_index = argmin(measurements)
-   return history[best_index][1]
+   return history[best_index]
 end
 
 # for selecting what to report to the user apart from the optimal
