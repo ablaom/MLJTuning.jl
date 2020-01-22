@@ -132,8 +132,8 @@ Several functions are part of the tuning strategy API:
 - `models!`: for generating batches of new models and updating the
   state (compulsory)
 
-- `best`: for extracting the optimal model (and its performance) from
-  the history
+- `best`: for extracting the entry in the history corresponding to the
+  optimal model from the full history
 
 - `tuning_report`: for selecting what to report to the user apart from
   the optimal model 
@@ -198,22 +198,13 @@ has the fields `upper`, `lower`, `scale`, `unit` and `origin`. The
 preferred "central value". These default to `(upper - lower)/2` and
 `(upper + lower)/2`, respectively, in the bounded case (neither `upper
 = Inf` nor `lower = -Inf`). The fields `origin` and `unit` are used in
-generating grids for unbounded ranges but can also be used to assign
-sensible one or two-parameter univariate pdf's to a specified range
-(e.g., assign a shifted exponential with mean `lower + unit` to a
-right-unbounded `NominalRange`).
+generating grids for unbounded ranges (and could be used in other
+strategies for fitting two-parameter probability distributions, for
+example).
 
 A `ParamRange` object is always associated with a field name, stored
 as `field`, but for composite models this might be a be a "nested
 name", such as `:(atom.max_depth)`.
-
-*Generating grids.** To generate a one-dimensional grid from a
-`ParamRange` object `r`, use `iterator(r, n, [, rng])` where `n` is
-the number of grid points (maybe less for integer grids, due to
-rounding) and `rng` an optional random number generator to shuffle the
-output. Query `NominalRange`, `NominalRange` and `iterator` doc
-strings for further details. For multi-dimensional grids, use the
-`unwind` function on the one-dimensional grids.
 
 
 #### The `result` method: For declaring what parts of an evaluation goes into the history 
