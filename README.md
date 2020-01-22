@@ -90,10 +90,17 @@ begin, on the basis of the specific strategy and a user-specified
 ### Interface points for user input
 
 Recall, for context, that in MLJ tuning is implemented as a model
-wrapper. In setting up a tuning task, the user constructs an instance
-of the `TunedModel` wrapper type, which has these principal fields:
+wrapper. A model is tuned by *fitting* the wrapped model to data. To
+use the optimal model one *predicts* using the wrapped model. For more
+detail, see the [Tuning
+Models](https://alan-turing-institute.github.io/MLJ.jl/dev/tuning_models/)
+section of the MLJ manual.
 
-- `model`: the prototype model instance mutated during tuning
+In setting up a tuning task, the user constructs an instance of the
+`TunedModel` wrapper type, which has these principal fields:
+
+- `model`: the prototype model instance mutated during tuning (the
+  model being wrapped)
 
 - `tuning`: the tuning strategy, an instance of a concrete
   `TuningStrategy` subtype, such as `Grid`
@@ -288,8 +295,8 @@ automatically under the hood, only occurs after these evaluations.*
 
 Most sequential tuning strategies will want include the batch size as
 a hyperparameter, which we suggest they call `batch_size`, but this
-field is not part of the tuning interface. In tuning whatever number
-of models are returned by `models!` get evaluated in parallel.
+field is not part of the tuning interface. In tuning, whatever models
+are returned by `models!` get evaluated in parallel.
 
 In a `Grid` tuning strategy, for example, `models!` returns a random
 selection of `n - length(history)` models from the grid, so that
