@@ -389,7 +389,7 @@ MLJTuning.default_n(::TuningStrategy) = 10
 ```
 
 
-### Implementation example: Search through explicit list 
+### Implementation example: Search through an explicit list 
 
 The most rudimentary tuning strategy just evaluates every model in a
 specified list, such lists constituting the only kind of supported
