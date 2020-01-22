@@ -83,18 +83,9 @@ begin, on the basis of the specific strategy and a user-specified
   iteration count are given - and is essentially the space of models
   to be searched. This definition is intentionally broad and the
   interface places no restriction on the allowed types of this
-  object. As an example, the `Grid` tuning strategy type supports the
-  following range objects:
+  object. For the range objects supported by the `Grid` stategy, see
+  [below](#range-types).
   
-  - one-dimensional `NumericRange` or `NominalRange` objects (these
-  types are provided by MLJBase)
-  
-  - a tuple `(p, r)` where `p` is one of the above range objects, and
-    `r` a resolution to override the default `resolution` of the
-    strategy
-  
-  - vectors of objects of the above forms
-
 
 ### Interface points for user input
 
@@ -185,14 +176,21 @@ Grid(; goal=nothing, resolution=10, shuffle=true,
 
 #### Range types
 
-A type definition is required for each range object a tuning strategy
-should like to handle. The following range types are available
-out-of-the box (re-exported from MLJBase):
+Generally a type definition is required for each range object a tuning
+strategy should like to handle, and the tuning strategy functions to
+be implemented are dispatched on these types. Here are the range
+objects supported by `Grid`:
 
-- The one-dimensional range types `NumericRange` and `NomincalRange`
-  (subtypes of `ParamRange`)
-
-- `Vector{ParamRange}` for Cartesian products
+  - one-dimensional `NumericRange` or `NominalRange` objects (these
+  types are provided by MLJBase)
+  
+  - a tuple `(p, r)` where `p` is one of the above range objects, and
+    `r` a resolution to override the default `resolution` of the
+    strategy
+  
+  - vectors of objects of the above form, e.g., `[r1, (r2, 5), r3]`
+    where `r1` and `r2` are `NumericRange` objects and `r3` a
+    `NominalRange` object.
   
 Recall that `NominalRange` has a `values` field, while `NominalRange`
 has the fields `upper`, `lower`, `scale`, `unit` and `origin`. The
