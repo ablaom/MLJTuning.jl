@@ -164,6 +164,13 @@ end
     fit!(tuned)
     @test e_training != tuned.report.best_result.measurement[1]
 
+    # test plotting part of report:
+    @test r.plotting.parameter_names ==
+        ["transformer.features", "model.lambda"]
+    @test r.plotting.parameter_scales == [:none, :log10]
+    @test r.plotting.measurements == measurements
+    @test size(r.plotting.parameter_values) == (40, 2)
+
 end
 
 @testset "basic tuning with training weights" begin

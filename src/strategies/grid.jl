@@ -84,9 +84,7 @@ function setup(tuning::Grid, model, user_range, verbosity)
         process_user_range(user_range, tuning.resolution, verbosity)
     resolutions = adjusted_resolutions(tuning.goal, ranges, resolutions)
 
-    parameter_names = map(ranges) do r
-        string(r.field)
-    end
+    fields = map(r -> r.field, ranges) 
 
     parameter_scales = scale.(ranges)
 
@@ -96,9 +94,11 @@ function setup(tuning::Grid, model, user_range, verbosity)
         models = grid(model, ranges, resolutions)
     end
 
-    return (models=models,
-            parameter_names=parameter_names,
-            parameter_scales=parameter_scales)
+    state = (models=models,
+             fields=fields,
+             parameter_scales=parameter_scales)
+
+    return state
 
 end
 
@@ -110,12 +110,28 @@ MLJTuning.models!(tuning::Grid, model, history,
 
 function tuning_report(tuning::Grid, history, state)
 
+    # extract from history the matrix `A` of parameter values and
+    # `measurements` for plotting report:
 
+    n_models = length(history)
+    n_parameters = length(state.fields)
 
+    A = Array{Any}(undef, (n_models, n_parameters))
+    measurements = Vector{Float64}(undef, n_models)
 
-    return (history=history,
-            plotting=(parameter_names=state.parameter_names,
-                      parameter_scales=state.parameter_scales))
+    for j in eachindex(history)
+        m, r = history[j]
+        A[j,:] = [recursive_getproperty(m, fld) for fld in state.fields]
+        measurements[j] = last(r)[1]
+    end
+
+    plotting=(parameter_names=string.(state.fields) |> collect,
+              parameter_scales=state.parameter_scales |> collect,
+              parameter_values = A,
+              measurements = measurements)
+
+    # todo: remove collects?
+    return (history=history, plotting=plotting)
 
 end
 
