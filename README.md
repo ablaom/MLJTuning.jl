@@ -209,9 +209,10 @@ generating grids for unbounded ranges (and could be used in other
 strategies for fitting two-parameter probability distributions, for
 example).
 
-A `ParamRange` object is always associated with a field name, stored
-as `field`, but for composite models this might be a be a "nested
-name", such as `:(atom.max_depth)`.
+A `ParamRange` object is always associated with the name of a
+hyperparameter (a field of the prototype in the context of tuning)
+which is recorded in its `field` attribute, but for composite models
+this might be a be a "nested name", such as `:(atom.max_depth)`.
 
 
 #### The `result` method: For declaring what parts of an evaluation goes into the history 
@@ -221,16 +222,18 @@ MLJTuning.result(tuning::MyTuningStrategy, history, e)
 ```
 
 This method is for extracting from an evaluation `e` of some model `m`
-(and possibly, through the `history`, previous values) the value of
-`r` to be recorded in the corresponding tuple `(m, r)` of the
-history. The fallback is
+the value of `r` to be recorded in the corresponding tuple `(m, r)` of
+the history. The value of `r` is also allowed to depend on previous
+events in the history.
 
 ```julia
 MLJTuning.result(tuning, history, e) = (measure=e.measure, measurement=e.measurement)
 ```
 
-Note this is always a tuple of *vectors*, since multiple measures
-can be specified.
+Note in this case that the result is always a named tuple of
+*vectors*, since multiple measures can be specified (and singleton
+measures provided by the user are promoted to vectors with a
+single element).
 
 The history must contain everything needed for the `best` method to
 determine the optimal model, and everything needed by the
@@ -245,13 +248,14 @@ detailed below.
 state = setup(tuning::MyTuningStrategy, model, range, verbosity)
 ```
 
-The `setup` function is for initializing the mutable `state` of the
-tuning algorithm (needed, by the algorithm's `models!` method; see
-below) and an empty history object. The `state` generally stores, at
-the least, the range or some processed version thereof. In
-momentum-based gradient descent, for example, the state would include
-the previous hyperparameter gradients, while in GP Bayesian
-optimization, it would store the (evolving) Gaussian processes.
+The `setup` function is for initializing the `state` of the tuning
+algorithm (needed, by the algorithm's `models!` method; see below). Be
+sure to make this object mutable if it needs to be updated by the
+`models!` method. The `state` generally stores, at the least, the
+range or some processed version thereof. In momentum-based gradient
+descent, for example, the state would include the previous
+hyperparameter gradients, while in GP Bayesian optimization, it would
+store the (evolving) Gaussian processes.
 
 If a variable is to be reported as part of the user-inspectable
 history, then it should be written to the history instead of stored in
@@ -259,7 +263,7 @@ state. An example of this might be the `temperature` in simulated
 annealing.
 
 The `verbosity` is an integer indicating the level of logging: `0`
-means logging should be restricted to warnings, `-1`, completely
+means logging should be restricted to warnings, `-1`, means completely
 silent. 
 
 The fallback for `setup` is:
@@ -375,30 +379,33 @@ MLJTuning.tuning_report(tuning, history, state) = (history=history,)
 #### The `default_n` method: For declaring the default number of iterations
 
 ```julia
-MLJTuning.default_n(tuning::MyTuningStrategy)
+MLJTuning.default_n(tuning::MyTuningStrategy, range)
 ```
 
-More precisely, the `methods!` method (which is allowed to return
-multiple models) is called until the number of models exceeds
-`default_n(tuning)`, or `methods!` returns an empty list.
+The `methods!` method (which is allowed to return multiple models) is
+called until a history of length `n` has been built, or `models!`
+returns an empty list or `nothing`. If the user does not specify a
+value for `n` when constructing her `TunedModel` object, then `n` is
+set to `default_n(tuning, range)` at construction, where `range` is
+the user specified range.
 
 The fallback is 
 
 ```julia
-MLJTuning.default_n(::TuningStrategy) = 10
+MLJTuning.default_n(::TuningStrategy, range) = 10
 ```
 
 
 ### Implementation example: Search through an explicit list 
 
 The most rudimentary tuning strategy just evaluates every model in a
-specified list, such lists constituting the only kind of supported
-range. (In this special case `range` is an arbitrary iterator of
-models, which are `Probabilistic` or `Deterministic`, according to the
-type of the prototype `model`, which is otherwise ignored.) The
-fallback implementations for `setup`, `result`, `best` and
-`report_history` suffice.  In particular, there is not distinction
-between `range` and `state` in this case. 
+specified list of models sharing a common type, such lists
+constituting the only kind of supported range. (In this special case
+`range` is an arbitrary iterator of models, which are `Probabilistic`
+or `Deterministic`, according to the type of the prototype `model`,
+which is otherwise ignored.) The fallback implementations for `setup`,
+`result`, `best` and `report_history` suffice.  In particular, there
+is not distinction between `range` and `state` in this case.
 
 Here's the complete implementation:
 
