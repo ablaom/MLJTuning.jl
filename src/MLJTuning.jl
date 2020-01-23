@@ -14,6 +14,7 @@ export Explicit
 
 import MLJBase
 using MLJBase
+using RecipesBase
 using Distributed
 import ComputationalResources: CPU1, CPUProcesses,
     CPUThreads, AbstractResource
@@ -27,5 +28,7 @@ include("tuned_models.jl")
 include("ranges.jl")
 include("strategies/explicit.jl")
 include("strategies/grid.jl")
+include("plotrecipes.jl")
+
 end
 
