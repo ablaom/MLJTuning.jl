@@ -3,6 +3,13 @@
     z = r.measurements
     x = r.parameter_values[:,1]
     y = r.parameter_values[:,2]
+
+    r.parameter_scales[1] == :none &&
+        (x = string.(x))
+
+    r.parameter_scales[2] == :none &&
+        (y = string.(y))
+
     xsc, ysc = r.parameter_scales
 
     xguide --> r.parameter_names[1]

@@ -76,7 +76,7 @@ end
                                      resampling=CV(nfolds=2),
                                      n=4)
     mach = machine(tm, X, y)
-    fit!(mach)
+    fit!(mach, verbosity=0)
     history = MLJBase.report(mach).history
     @test map(event -> last(event).measurement[1], history) ≈ results[1:4]
 

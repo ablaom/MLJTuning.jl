@@ -84,7 +84,7 @@ function setup(tuning::Grid, model, user_range, verbosity)
         process_user_range(user_range, tuning.resolution, verbosity)
     resolutions = adjusted_resolutions(tuning.goal, ranges, resolutions)
 
-    fields = map(r -> r.field, ranges) 
+    fields = map(r -> r.field, ranges)
 
     parameter_scales = scale.(ranges)
 
@@ -110,25 +110,7 @@ MLJTuning.models!(tuning::Grid, model, history,
 
 function tuning_report(tuning::Grid, history, state)
 
-    # extract from history the matrix `A` of parameter values and
-    # `measurements` for plotting report:
-
-    n_models = length(history)
-    n_parameters = length(state.fields)
-
-    A = Array{Any}(undef, (n_models, n_parameters))
-    measurements = Vector{Float64}(undef, n_models)
-
-    for j in eachindex(history)
-        m, r = history[j]
-        A[j,:] = [recursive_getproperty(m, fld) for fld in state.fields]
-        measurements[j] = last(r)[1]
-    end
-
-    plotting=(parameter_names=string.(state.fields) |> collect,
-              parameter_scales=state.parameter_scales |> collect,
-              parameter_values = A,
-              measurements = measurements)
+    plotting = plotting_report(state.fields, state.parameter_scales, history)
 
     # todo: remove collects?
     return (history=history, plotting=plotting)

@@ -136,7 +136,7 @@ end
     fit!(tuned, verbosity=0)
     r = report(tuned)
     @test r.best_report isa NamedTuple{(:machines, :reports)}
-    fit!(tuned)
+    fit!(tuned, verbosity=0)
     rep = report(tuned)
     fp = fitted_params(tuned)
     @test fp.best_fitted_params isa NamedTuple{(:machines, :fitted_params)}
@@ -161,7 +161,7 @@ end
 
     # test weights:
     tuned_model.weights = rand(length(y))
-    fit!(tuned)
+    fit!(tuned, verbosity=0)
     @test e_training != tuned.report.best_result.measurement[1]
 
     # test plotting part of report:
@@ -188,13 +188,13 @@ end
 
     # no weights:
     tuned = machine(tuned_model, X, y)
-    fit!(tuned)
+    fit!(tuned, verbosity=0)
     best1 = fitted_params(tuned).best_model
     posterior1 = average([predict(tuned, X)...])
 
     # uniform weights:
     tuned = machine(tuned_model, X, y, fill(1, 3N))
-    fit!(tuned)
+    fit!(tuned, verbosity=0)
     best2 = fitted_params(tuned).best_model
     posterior2 = average([predict(tuned, X)...])
 
@@ -212,7 +212,7 @@ end
         end
     end
     tuned = machine(tuned_model, X, y, w)
-    fit!(tuned)
+    fit!(tuned, verbosity=0)
     best3 = fitted_params(tuned).best_model
     posterior3 = average([predict(tuned, X)...])
 
