@@ -512,4 +512,4 @@ end
 ```
 
 For slightly less trivial example, see
-[here](https://github.com/ablaom/MLJTuning.jl/blob/master/src/strategies/grid.jl).
+[/src/strategies/grid.jl](/src/strategies/grid.jl)
