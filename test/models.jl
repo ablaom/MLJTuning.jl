@@ -4,7 +4,6 @@
 # - change `import ..DecisionTree` to `import DecisionTree`
 # - remove wrapping as module
 
-# load the models for testing:
 module Models
 
 using MLJBase
@@ -16,6 +15,7 @@ include("models/MultivariateStats.jl")
 include("models/Transformers.jl")
 include("models/foobarmodel.jl")
 include("models/simple_composite_model.jl")
+include("models/ensembles.jl")
 
 end
 

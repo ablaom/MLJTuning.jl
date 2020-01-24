@@ -27,3 +27,7 @@ end
 @testset "grid" begin
     @test include("strategies/grid.jl")
 end
+
+@testset "learning curves" begin
+    @test include("learning_curves.jl")
+end

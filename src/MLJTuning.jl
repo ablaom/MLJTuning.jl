@@ -9,6 +9,9 @@ export Grid, TunedModel
 # defined in strategies/:
 export Explicit
 
+# defined in learning_curves.jl:
+export learning_curve!, learning_curve
+
 
 ## METHOD IMPORT
 
@@ -29,6 +32,7 @@ include("ranges.jl")
 include("strategies/explicit.jl")
 include("strategies/grid.jl")
 include("plotrecipes.jl")
+include("learning_curves.jl")
 
 end
 

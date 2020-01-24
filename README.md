@@ -74,6 +74,9 @@ This repository contains:
 - a selection of **implementations** of the tuning strategy interface,
   currently all those accessible from
   [MLJ](https://github.com/alan-turing-institute/MLJ.jl) itself.
+  
+- the code defining the MLJ functions `learning_curves!` and `learning_curve` as
+  these are essentially one-dimensional grid searches
 
 
 ## Implementing a New Tuning Strategy
