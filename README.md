@@ -55,7 +55,7 @@ This repository contains:
 
   - [x] grid search
   
-  - [x] Latin hypercubes
+  - [ ] Latin hypercubes
 
   - [ ] random search
 
