@@ -97,7 +97,7 @@ iteration corresponding to a performance *evaluation* of a single
 *model*. Each such model is a mutation of a fixed *prototype*. In the
 general case, this prototype is a composite model, i.e., a model with
 other models as hyperparameters, and while the type of the prototype
-is fixed, the types of the sub-models are allowed to vary.
+mutations is fixed, the types of the sub-models are allowed to vary.
 
 When all iterations of the algorithm are complete, the optimal model
 is selected based entirely on a *history* generated according to the
@@ -120,9 +120,10 @@ begin, on the basis of the specific strategy and a user-specified
   store learned parameters.
 
 - An *evaluation* is the value returned by some call to the
-  `evaluate!` method, when passed the resampling strategy and
-  performance measures specified by the user when specifying the
-  tuning task. Recall that such a value is a named tuple of vectors
+  `evaluate!` method, when passed the resampling strategy (e.g.,
+  `CV(nfolds=9)` and performance measures specified by the user when
+  specifying the tuning task (e.g., `cross_entropy`,
+  `accuracy`). Recall that such a value is a named tuple of vectors
   with keys `measure`, `measurement`, `per_fold`, and
   `per_observation`. See [Evaluating Model
   Performance](https://alan-turing-institute.github.io/MLJ.jl/dev/evaluating_model_performance/)
@@ -131,8 +132,8 @@ begin, on the basis of the specific strategy and a user-specified
   observation, while others (e.g., `auc`) report only an aggregated
   value (the `per_observation` entries being recorded as
   `missing`). This and other behavior can be inspected using trait
-  functions. Do `info(rms)` to view the trait values for the `rms` loss, and
-  see [Performance
+  functions. Do `info(rms)` to view the trait values for the `rms`
+  loss, and see [Performance
   measures](https://alan-turing-institute.github.io/MLJ.jl/dev/performance_measures/)
   for details.
 
@@ -152,9 +153,9 @@ begin, on the basis of the specific strategy and a user-specified
   strategy that **do not refer to specific models or specific model
   hyperparameters**. So, for example, a default resolution to be used
   in a grid search is a hyperparameter of `Grid`, but the resolution
-  to be applied to a *specific* model hyperparameter (such as the
-  maximum depth of a decision tree) is **not**. This latter parameter
-  would be part of the user-specified range object.
+  to be applied to a *specific* hyperparameter (such as the maximum
+  depth of a decision tree) is **not**. This latter parameter would be
+  part of the user-specified range object.
 
 - A *range* is any object whose specification completes the
   specification of the tuning task, after the prototype, tuning
@@ -169,8 +170,9 @@ begin, on the basis of the specific strategy and a user-specified
 ### Interface points for user input
 
 Recall, for context, that in MLJ tuning is implemented as a model
-wrapper. A model is tuned by *fitting* the wrapped model to data. To
-use the optimal model one *predicts* using the wrapped model. For more
+wrapper. A model is tuned by *fitting* the wrapped model to data
+(which also trains the optimal model on all available data). To use
+the optimal model one *predicts* using the wrapped model. For more
 detail, see the [Tuning
 Models](https://alan-turing-institute.github.io/MLJ.jl/dev/tuning_models/)
 section of the MLJ manual.
@@ -185,8 +187,8 @@ In setting up a tuning task, the user constructs an instance of the
   `TuningStrategy` subtype, such as `Grid`
 
 - `resampling`: the resampling strategy used for performance
-  evaluations, an instance of a concrete `ResamplingStrategy` subtype,
-  such as `Holdout` or `CV`
+  evaluations, which must be an instance of a concrete
+  `ResamplingStrategy` subtype, such as `Holdout` or `CV`
 
 - `measure`: a measure (loss or score) or vector of measures available
   to the tuning algorithm, the first of which is optimized in the
@@ -222,12 +224,12 @@ Several functions are part of the tuning strategy API:
   optimal model from the full history
 
 - `tuning_report`: for selecting what to report to the user apart from
-  the optimal model
+  details on the optimal model
 
 - `default_n`: to specify the number of models to be evaluated when
   `n` is not specified by the user
 
-**Important note on history** The initialization and update of the
+**Important note on the history.** The initialization and update of the
 history is carried out internally, i.e., is not the responsibility of
 the tuning strategy implementation. The history is always initialized to
 `nothing`, rather than an empty vector.
@@ -262,10 +264,10 @@ Grid(; goal=nothing, resolution=10, shuffle=true,
 
 #### Range types
 
-Generally a type definition is required for each range object a tuning
-strategy should like to handle, and the tuning strategy functions to
-be implemented are dispatched on these types. Here are the range
-objects supported by `Grid`:
+Generally new types are defined for each class of range object a
+tuning strategy should like to handle, and the tuning strategy
+functions to be implemented are dispatched on these types. Here are
+the range objects supported by `Grid`:
 
   - one-dimensional `NumericRange` or `NominalRange` objects (these
   types are provided by MLJBase)
