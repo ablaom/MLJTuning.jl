@@ -1,3 +1,7 @@
+This repo is an early version of the [Alan Turing Institute
+repository](https://github.com/alan-turing-institute/MLJTuning.jl) of
+the same name.
+
 # MLJTuning
 
 Hyperparameter optimization for
