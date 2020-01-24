@@ -2,7 +2,14 @@
 
 Hyperparameter optimization for
 [MLJ](https://github.com/alan-turing-institute/MLJ.jl) machine
-learning models.
+learning models for MLJ.
+
+*Note:* This component of the MLJ
+  [stack](https://github.com/alan-turing-institute/MLJ.jl#the-mlj-universe)
+  applies to MLJ versions 0.8.0 and higher. Prior to 0.8.0, tuning
+  algorithms resided in
+  [MLJ](https://github.com/alan-turing-institute/MLJ.jl).
+
 
 ## What/Who is this repo for?
 
@@ -18,12 +25,14 @@ This repository is not intended for the general user but is:
   natively (by adding code to this repo) or by importing and
   implementing an interface provided by this repo
   
-- a component of the MLJ which does not have
+- a component of the MLJ
+  [stack](https://github.com/alan-turing-institute/MLJ.jl#the-mlj-universe)
+  which does not have
   [MLJModels](https://github.com/alan-turing-institute/MLJModels.jl)
   as a dependency (no ability to search and load registered MLJ
   models) but does depend on
   [MLJBase](https://github.com/alan-turing-institute/MLJBase.jl) and,
-  in particular on the resampling functionality currently residing
+  in particular, on the resampling functionality currently residing
   there
 
 
@@ -45,6 +54,8 @@ This repository contains:
 	model2, ...]`
 
   - [x] grid search
+  
+  - [x] Latin hypercubes
 
   - [ ] random search
 
@@ -58,19 +69,23 @@ This repository contains:
 
   - [ ] genetic algorithms
 
-  - [ ] AD-powered gradient descent methods  - [ ] grid search
+  - [ ] AD-powered gradient descent methods 
 
-- a selection of **implementations** of the tuning strategy interface
-  (currently all those accessible from
-  [MLJ](https://github.com/alan-turing-institute/MLJ.jl) itself).
+- a selection of **implementations** of the tuning strategy interface,
+  currently all those accessible from
+  [MLJ](https://github.com/alan-turing-institute/MLJ.jl) itself.
 
 
 ## Implementing a New Tuning Strategy
 
 This document assumes familiarity with the [Evaluating Model
-Performance](https://alan-turing-institute.github.io/MLJ.jl/dev/evaluating_model_performance/) and [Performance
-  Measures](https://alan-turing-institute.github.io/MLJ.jl/dev/performance_measures/)
-sections of the MLJ manual.
+Performance](https://alan-turing-institute.github.io/MLJ.jl/dev/evaluating_model_performance/)
+and [Performance
+Measures](https://alan-turing-institute.github.io/MLJ.jl/dev/performance_measures/)
+sections of the MLJ manual. Tuning itself, from the user's
+perspective, is described in [Tuning
+Models](https://alan-turing-institute.github.io/MLJ.jl/dev/tuning_models/).
+
 
 ### Overview
 
