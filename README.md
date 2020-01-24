@@ -11,7 +11,7 @@ learning models.
   [MLJ](https://github.com/alan-turing-institute/MLJ.jl).
 
 
-## What is this repo for?
+## Who is this repo for?
 
 This repository is not intended for the general MLJ user but is:
 
