@@ -22,8 +22,8 @@ This repository is not intended for the general user but is:
   
 - a place for developers to integrate hyperparameter optimization
   algorithms (here called *tuning strategies*) into MLJ, either
-  natively (by adding code to this repo) or by importing and
-  implementing an interface provided by this repo
+  natively (by adding code [here](/src/strategies)) or by importing
+  and implementing an interface provided by this repo
   
 - a component of the MLJ
   [stack](https://github.com/alan-turing-institute/MLJ.jl#the-mlj-universe)
