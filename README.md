@@ -4,16 +4,16 @@ Hyperparameter optimization for
 [MLJ](https://github.com/alan-turing-institute/MLJ.jl) machine
 learning models.
 
-*Note:* This component of the MLJ
-  [stack](https://github.com/alan-turing-institute/MLJ.jl#the-mlj-universe)
+*Note:* This component of the [MLJ
+  stack](https://github.com/alan-turing-institute/MLJ.jl#the-mlj-universe)
   applies to MLJ versions 0.8.0 and higher. Prior to 0.8.0, tuning
   algorithms resided in
   [MLJ](https://github.com/alan-turing-institute/MLJ.jl).
 
 
-## What/Who is this repo for?
+## What is this repo for?
 
-This repository is not intended for the general user but is:
+This repository is not intended for the general MLJ user but is:
 
 - a dependency of the
   [MLJ](https://github.com/alan-turing-institute/MLJ.jl) machine
@@ -25,15 +25,15 @@ This repository is not intended for the general user but is:
   natively (by adding code to [/src/strategies](/src/strategies)) or
   by importing and implementing an interface provided by this repo
   
-- a component of the MLJ
+MLJTuning is a component of the MLJ
   [stack](https://github.com/alan-turing-institute/MLJ.jl#the-mlj-universe)
   which does not have
   [MLJModels](https://github.com/alan-turing-institute/MLJModels.jl)
   as a dependency (no ability to search and load registered MLJ
-  models) but does depend on
+  models). It does however depend on
   [MLJBase](https://github.com/alan-turing-institute/MLJBase.jl) and,
   in particular, on the resampling functionality currently residing
-  there
+  there.
 
 
 ## What's provided here?
